@@ -1,0 +1,13 @@
+﻿namespace StateEngine
+{
+    using StateEngine.Events;
+    using StateEngine.Model;
+    using StateEngine.States;
+
+    public interface IStateBehaviour
+    {
+        IModel Model { get; }
+        IEventer Eventer { get; }
+        IStater Stater { get; }
+    }
+}
