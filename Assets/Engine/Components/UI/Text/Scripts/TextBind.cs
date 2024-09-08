@@ -1,4 +1,4 @@
-﻿namespace StateEngine.Example
+﻿namespace StateEngine.Components
 {
     using StateEngine.Behaviours;
     using StateEngine.Events;
@@ -13,7 +13,7 @@
         [SerializeField] protected string modelField;
         override public void Initialize()
         {
-            modelField = string.IsNullOrEmpty(modelField) ? name : modelField;
+            modelField = $"{(string.IsNullOrEmpty(modelField) ? name+ "Text" : modelField)}";
             eventer.Add<DataChangeEvent>(modelField, DataChangeHandler);
         }
         private void DataChangeHandler(DataChangeEvent data)

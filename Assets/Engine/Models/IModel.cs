@@ -5,6 +5,7 @@
     public interface IModel
     {
         IEventer Eventer { get; }
+        void Refresh<T>(string key);
         void Set(string key, object value);
         void Clear();
         bool Contains(string key);

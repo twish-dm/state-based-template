@@ -69,6 +69,10 @@ namespace StateEngine.Model
             data.Clear();
         }
 
+        public void Refresh<T>(string key)
+        {
+            Eventer.Invoke<DataChangeEvent>(key, new(DataChangeEvent.TYPE_DATA_REFRESH, Get<T>(key)));
+        }
 
         public bool Contains(string key)
         {
@@ -107,49 +111,5 @@ namespace StateEngine.Model
         {
             return Contains(key) ? (bool)data[key] : def;
         }
-    }
-
-    public class DynamicList<T> : List<T>, ICollection<T>
-    {
-        public DynamicList(string field, IEventer eventer):base()
-        {
-            this.field = field;
-            this.eventer = eventer;
-        }
-        public DynamicList(string field, IEventer eventer, ICollection<T> list) :base(list)
-        {
-            this.field = field;
-            this.eventer = eventer;
-        }
-        protected IEventer eventer;
-        protected string field;
-        
-        new virtual public T this[int key]
-        {
-            get => base[key];
-            set
-            {
-                base[key] = value;
-                eventer.Invoke<DataChangeEvent>(field, new(DataChangeEvent.TYPE_DATA_CHANGE, this));
-            }
-        }
-
-        new virtual public void Add(T item)
-        {
-            base.Add(item);
-            eventer.Invoke<DataChangeEvent>(field, new(DataChangeEvent.TYPE_DATA_ADD, this));
-        }
-
-        new virtual public void Clear()
-        {
-            base.Clear();
-            eventer.Invoke<DataChangeEvent>(field, new(DataChangeEvent.TYPE_DATA_REMOVE, this));
-        }
-        new virtual public bool Remove(T item)
-        {
-            bool result = base.Remove(item);
-            return result;
-        }
-
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace StateEngine.Example
+﻿namespace StateEngine.Components
 {
     using StateEngine.Behaviours;
 
@@ -14,7 +14,7 @@
         protected Button button;
         override public void Initialize()
         {
-            modelField = string.IsNullOrEmpty(modelField) ? name : modelField;
+            modelField = $"{(string.IsNullOrEmpty(modelField) ? name+ "Button" : modelField)}";
             button = GetComponent<Button>();
             button.onClick.AddListener(ClickHandler);
         }
