@@ -6,7 +6,8 @@ namespace StateEngine.States
 
     public interface IState : IInitialize
     {
-        IModel Model {get; set;}
+        IModel InternalModel {get; set;}
+        IModel MainModel { get; set; }
         IEventer Eventer { get; }
         IStater Stater { get; set; }
         IViewer Viewer { get; set; }

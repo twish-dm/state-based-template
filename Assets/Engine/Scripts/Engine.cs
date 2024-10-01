@@ -10,27 +10,33 @@
     using UnityEngine;
     using UnityEngine.Events;
 
-    [DefaultExecutionOrder(-800)]
-    public class Engine : MonoBehaviour, IStateBehaviour
+    [DefaultExecutionOrder(-1200)]
+    public class Engine : MonoBehaviour, IEngine
     {
         public const string KEY = "engine";
-        private Dictionary<string, UnityEventBase> m_EventsData;
-        protected DynamicModel model { get; set; }
-        protected Eventer eventer { get; set; }
+        private Dictionary<string, UnityEventBase> m_InternalEventsData, m_MainEventsData;
+        protected DynamicModel internalModel { get; set; }
+        protected DynamicModel mainModel { get; set; }
+        protected Eventer internalEventer { get; set; }
+        protected Eventer mainEventer { get; set; }
         protected Stater stater { get; set; }
-        public IEventer Eventer => eventer;
+        public IEventer Eventer => internalEventer;
         public IStater Stater => stater;
-        public IModel Model => model;
+        public IModel InternalModel => internalModel;
+        public IModel MainModel => mainModel;
 
         private void Awake()
         {
             if (StaticModel.ContainsKey(KEY))
                 throw new Exception("Engine already running");
-            m_EventsData = new Dictionary<string, UnityEventBase>();
-            eventer = new Eventer(m_EventsData);
-            model = new DynamicModel(eventer);
-            stater = new Stater(model);
-            StaticModel.Add(KEY, (IStateBehaviour)this);
+            m_InternalEventsData = new Dictionary<string, UnityEventBase>();
+            m_MainEventsData = new Dictionary<string, UnityEventBase>();
+            internalEventer = new Eventer(m_InternalEventsData);
+            mainEventer = new Eventer(m_MainEventsData);
+            internalModel = new DynamicModel(internalEventer);
+            mainModel = new DynamicModel(mainEventer);
+            stater = new Stater(internalModel, mainModel);
+            StaticModel.Add(KEY, (IEngine)this);
         }
     }
 }

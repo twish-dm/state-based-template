@@ -57,7 +57,7 @@ namespace StateEngine.Components.Navigation
         }
         virtual protected void Start()
         {
-            ApplySteps(model.GetList<INavigationStep>(stepsField));
+            ApplySteps(internalModel.GetList<INavigationStep>(stepsField));
         }
         private void Reset()
         {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Assets.Engine.Components
+namespace Assets.Engine.Components.Tools
 {
     public class Timer
     {

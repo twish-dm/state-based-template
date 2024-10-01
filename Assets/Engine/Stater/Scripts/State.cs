@@ -10,7 +10,7 @@
     abstract public class State : IState
     {
 
-        virtual public IModel Model { get; set; }
+        virtual public IModel InternalModel { get; set; }
         private Dictionary<string, UnityEventBase> m_EventsData;
         private Eventer m_Eventer;
         virtual public IEventer Eventer { get => m_Eventer; }
@@ -20,6 +20,7 @@
 
         virtual public bool IsInitialized { get; private set; }
         virtual public IViewer Viewer { get; set; }
+        public IModel MainModel { get; set; }
 
         virtual public void Dispose()
         {
@@ -41,12 +42,12 @@
 
         public void Send(string type)
         {
-            Model.Eventer.Invoke(type);
+            InternalModel.Eventer.Invoke(type);
         }
 
         public void Send<T>(string type, T eventData) where T : IEventData
         {
-            Model.Eventer.Invoke(type, eventData);
+            InternalModel.Eventer.Invoke(type, eventData);
         }
     }
 }

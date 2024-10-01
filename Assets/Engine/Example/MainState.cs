@@ -24,7 +24,7 @@
         private void GlobalButton()
         {
             Debug.Log("нопка вызываемая в глобальном стейтере");
-            Model.Set("global", "global" + Random.Range(0, 100));
+            InternalModel.Set("global", "global" + Random.Range(0, 100));
             Viewer.Push("Tesst");
         }
 

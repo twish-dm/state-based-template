@@ -9,7 +9,7 @@
 
     abstract public class DynamicBehaviour : MonoBehaviour, IDisposable, IInitialize
     {
-        [SerializeField] private bool m_IsGlobal;
+        [SerializeField] private bool m_GetFromEngine;
         protected event UnityAction onUpdate, onFixedUpdate, onLateUpdate;
         private IModel m_Model;
         private IEventer m_Eventer;
@@ -18,16 +18,28 @@
         {
             if (!IsInitialized)
             {
-                m_Model = m_IsGlobal ? StaticModel.Get<IStateBehaviour>(Engine.KEY).Model : GetComponentInParent<IStateBehaviour>().Model ?? StaticModel.Get<IStateBehaviour>(Engine.KEY).Model;
-                m_Eventer = m_IsGlobal ? StaticModel.Get<IStateBehaviour>(Engine.KEY).Eventer : GetComponentInParent<IStateBehaviour>().Eventer ?? StaticModel.Get<IStateBehaviour>(Engine.KEY).Eventer;
-                m_Stater = m_IsGlobal ? StaticModel.Get<IStateBehaviour>(Engine.KEY).Stater : GetComponentInParent<IStateBehaviour>().Stater ?? StaticModel.Get<IStateBehaviour>(Engine.KEY).Stater;
+                IStateBehaviour parentStater = GetComponentInParent<IStateBehaviour>();
+
+                if (!m_GetFromEngine && parentStater != null)
+                {
+                    m_Model = parentStater.InternalModel;
+                    m_Eventer = parentStater.Eventer;
+                    m_Stater = parentStater.Stater;
+                }
+                else
+                {
+                    m_GetFromEngine = true;
+                    m_Model = StaticModel.Get<IEngine>(Engine.KEY).InternalModel;
+                    m_Eventer = StaticModel.Get<IEngine>(Engine.KEY).Eventer;
+                    m_Stater = StaticModel.Get<IEngine>(Engine.KEY).Stater;
+                }
                 Debug.Log($"DynamicBehaviour[{name}] Initialize");
                 Initialize();
                 IsInitialized = true;
             }
         }
 
-        virtual protected IModel model => m_Model;
+        virtual protected IModel internalModel => m_Model;
         virtual protected IEventer eventer => m_Eventer;
         private IStater m_Stater;
         virtual public void Send(string type)

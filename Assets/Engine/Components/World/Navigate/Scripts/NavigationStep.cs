@@ -20,10 +20,10 @@
             {
                 throw new System.Exception("Добавьте ссылку на DynamicList<INavigationStep>");
             }
-            if (!model.Contains(stepsField))
-                model.CreateList<INavigationStep>(stepsField);
-            if (!model.GetList<INavigationStep>(stepsField).Contains(this))
-                model.GetList<INavigationStep>(stepsField).Add(this);
+            if (!internalModel.Contains(stepsField))
+                internalModel.CreateList<INavigationStep>(stepsField);
+            if (!internalModel.GetList<INavigationStep>(stepsField).Contains(this))
+                internalModel.GetList<INavigationStep>(stepsField).Add(this);
         }
         virtual protected void OnEnable()
         {
@@ -35,8 +35,8 @@
         }
         public override void Dispose()
         {
-            if (model.Contains(stepsField) && model.GetList<INavigationStep>(stepsField).Contains(this))
-                model.GetList<INavigationStep>(stepsField).Remove(this);
+            if (internalModel.Contains(stepsField) && internalModel.GetList<INavigationStep>(stepsField).Contains(this))
+                internalModel.GetList<INavigationStep>(stepsField).Remove(this);
             base.Dispose();
         }
 

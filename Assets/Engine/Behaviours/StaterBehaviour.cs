@@ -9,16 +9,19 @@ namespace StateEngine.Behaviours
     
     public class StaterBehaviour : DynamicBehaviour, IStateBehaviour
     {
-        public IModel Model => model;
-
+        public IModel InternalModel => internalModel;
+        
         public IEventer Eventer => eventer;
 
         virtual protected Stater stater { get; set; }
         virtual public IStater Stater => stater;
+
+        protected IModel MainModel => StaticModel.Get<IEngine>(Engine.KEY).MainModel;
+
         override protected void Awake()
         {
             base.Awake();
-            stater = new Stater(model);
+            stater = new Stater(InternalModel, MainModel);
         }
     }
 }

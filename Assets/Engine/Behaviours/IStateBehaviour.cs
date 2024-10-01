@@ -6,7 +6,7 @@
 
     public interface IStateBehaviour
     {
-        IModel Model { get; }
+        IModel InternalModel { get; }
         IEventer Eventer { get; }
         IStater Stater { get; }
     }

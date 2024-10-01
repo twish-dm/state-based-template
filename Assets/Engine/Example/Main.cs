@@ -1,6 +1,6 @@
 namespace StateEngine.Example
 {
-    using Assets.Engine.Components;
+    using Assets.Engine.Components.Tools;
 
     using StateEngine;
 

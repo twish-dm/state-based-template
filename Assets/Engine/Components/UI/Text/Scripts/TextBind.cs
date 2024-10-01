@@ -14,6 +14,8 @@
         override public void Initialize()
         {
             modelField = $"{(string.IsNullOrEmpty(modelField) ? name+ "Text" : modelField)}";
+
+            Debug.Log(eventer);
             eventer.Add<DataChangeEvent>(modelField, DataChangeHandler);
         }
         private void DataChangeHandler(DataChangeEvent data)

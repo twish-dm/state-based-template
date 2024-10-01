@@ -19,7 +19,7 @@
         private void LocalButton()
         {
             Debug.Log("Кнопка вызываемая в локальном стейтере");
-            Model.Set("local", "local"+Random.Range(0, 100));
+            InternalModel.Set("local", "local"+Random.Range(0, 100));
         }
 
         private void GlobalButton()
