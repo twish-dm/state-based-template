@@ -1,6 +1,4 @@
-﻿
-
-namespace StateEngine.Model
+﻿namespace StateEngine.Model
 {
     using StateEngine.Events;
 
@@ -34,16 +32,28 @@ namespace StateEngine.Model
             {
                 bool contains = Contains(key);
                 data[key] = value;
-                Eventer.Invoke<DataChangeEvent>(key, new(contains ? DataChangeEvent.TYPE_DATA_CHANGE : DataChangeEvent.TYPE_DATA_ADD, value));
+                Eventer.Invoke<ModelEvent>(key, new(contains ? ModelEvent.TYPE_DATA_CHANGE : ModelEvent.TYPE_DATA_ADD, value));
             }
         }
         public void Set(string key, object value)
         {
             if (data.ContainsKey(key))
-                data[key] = value;
+            {
+                if(data[key] != value)
+                {
+                    data[key] = value;
+                    Eventer.Invoke<ModelEvent>(key, new(ModelEvent.TYPE_DATA_CHANGE, value));
+                }
+                else
+                {
+                    Eventer.Invoke<ModelEvent>(key, new(ModelEvent.TYPE_DATA_REFRESH, value));
+                }
+            }
             else
+            {
                 data.Add(key, value);
-            Eventer.Invoke<DataChangeEvent>(key, new(DataChangeEvent.TYPE_DATA_ADD, value));
+                Eventer.Invoke<ModelEvent>(key, new(ModelEvent.TYPE_DATA_ADD, value));
+            }
         }
         public DynamicList<T> CreateList<T>(string key)
         {
@@ -65,13 +75,13 @@ namespace StateEngine.Model
         public void Clear()
         {
             foreach (string key in data.Keys)
-                Eventer.Invoke<DataChangeEvent>(key, new(DataChangeEvent.TYPE_DATA_REMOVE, data[key]));
+                Eventer.Invoke<ModelEvent>(key, new(ModelEvent.TYPE_DATA_REMOVE, data[key]));
             data.Clear();
         }
 
         public void Refresh<T>(string key)
         {
-            Eventer.Invoke<DataChangeEvent>(key, new(DataChangeEvent.TYPE_DATA_REFRESH, Get<T>(key)));
+            Eventer.Invoke<ModelEvent>(key, new(ModelEvent.TYPE_DATA_REFRESH, Get<T>(key)));
         }
 
         public bool Contains(string key)
@@ -81,7 +91,7 @@ namespace StateEngine.Model
 
         public bool Remove(string key)
         {
-            Eventer.Invoke<DataChangeEvent>(key, new(DataChangeEvent.TYPE_DATA_REMOVE, data[key]));
+            Eventer.Invoke<ModelEvent>(key, new(ModelEvent.TYPE_DATA_REMOVE, data[key]));
             bool result = data.Remove(key);
             return result;
         }

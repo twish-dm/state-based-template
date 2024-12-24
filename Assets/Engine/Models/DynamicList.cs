@@ -47,7 +47,7 @@
             return result;
         }
     }
-    public class ListEvent : DataChangeEvent
+    public class ListEvent : ModelEvent
     {
         public const int TYPE_DATA_ITEM_CHANGE = 3;
         public const int TYPE_DATA_ITEM_NEW = 4;

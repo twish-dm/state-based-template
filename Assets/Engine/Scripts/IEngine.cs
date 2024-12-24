@@ -2,8 +2,8 @@
 {
     using StateEngine.Model;
 
-    public interface IEngine : IStateBehaviour
+    public interface IEngine : IStaterBehaviour
     {
-        IModel MainModel { get; }
+        IModel PrimaryModel { get; }
     }
 }

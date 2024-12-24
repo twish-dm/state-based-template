@@ -9,11 +9,11 @@ namespace StateEngine.States
 
     public class Stater : IStater
     {
-        protected IModel internalModel, mainModel;
-        public Stater(IModel internalModel, IModel mainModel)
+        protected IModel model, primaryModel;
+        public Stater(IModel model, IModel primaryModel)
         {
-            this.internalModel = internalModel;
-            this.mainModel = mainModel;
+            this.model = model;
+            this.primaryModel = primaryModel;
         }
         private Dictionary<string, int> m_StateIndexMap = new Dictionary<string, int>();
         private List<IState> m_States = new List<IState>();
@@ -24,7 +24,8 @@ namespace StateEngine.States
             if (m_StateIndexMap.ContainsKey(state.Name))
                 throw new Exception($"State '{state.Name}({state.GetType()})' already exist");
             state.Stater = this;
-            state.InternalModel = internalModel;
+            state.Model = model;
+            state.PrimaryModel = primaryModel;
             state.Viewer = StaticModel.Get<IViewer>(Viewer.KEY);
             m_StateIndexMap.Add(state.Name, m_States.Count);
             m_States.Add(state);
@@ -62,7 +63,7 @@ namespace StateEngine.States
             Current?.Eventer.Invoke(type);
         }
 
-        virtual public void Invoke<T>(string type, T eventData) where T : IEventData
+        virtual public void Invoke<T>(string type, T eventData)
         {
             Current?.Eventer.Invoke(type, eventData);
         }

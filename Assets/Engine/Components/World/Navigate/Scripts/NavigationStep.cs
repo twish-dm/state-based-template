@@ -49,5 +49,9 @@
         {
             Debug.Log("STEP STARTED");
         }
+
+        public override void Initialize()
+        {
+        }
     }
 }

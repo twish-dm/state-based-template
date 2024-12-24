@@ -2165,7 +2165,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_GetFromEngine: 0
-  modelField: 
+  modelField: LocalButton
 --- !u!114 &1916704957
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2302,7 +2302,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_GetFromEngine: 0
-  modelField: 
+  modelField: GlobalButton
 --- !u!114 &1947045848
 MonoBehaviour:
   m_ObjectHideFlags: 0

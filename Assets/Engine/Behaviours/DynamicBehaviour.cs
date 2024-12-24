@@ -7,9 +7,9 @@
     using UnityEngine.Events;
     using StateEngine.States;
 
-    abstract public class DynamicBehaviour : MonoBehaviour, IDisposable, IInitialize
+    abstract public class DynamicBehaviour : MonoBehaviour, IInitialize
     {
-        [SerializeField] private bool m_GetFromEngine;
+        [SerializeField] protected bool m_GetFromEngine;
         protected event UnityAction onUpdate, onFixedUpdate, onLateUpdate;
         private IModel m_Model;
         private IEventer m_Eventer;
@@ -18,18 +18,18 @@
         {
             if (!IsInitialized)
             {
-                IStateBehaviour parentStater = GetComponentInParent<IStateBehaviour>();
+                IStaterBehaviour parentStater = GetComponentInParent<IStaterBehaviour>();
 
                 if (!m_GetFromEngine && parentStater != null)
                 {
-                    m_Model = parentStater.InternalModel;
+                    m_Model = parentStater.Model;
                     m_Eventer = parentStater.Eventer;
                     m_Stater = parentStater.Stater;
                 }
                 else
                 {
                     m_GetFromEngine = true;
-                    m_Model = StaticModel.Get<IEngine>(Engine.KEY).InternalModel;
+                    m_Model = StaticModel.Get<IEngine>(Engine.KEY).Model;
                     m_Eventer = StaticModel.Get<IEngine>(Engine.KEY).Eventer;
                     m_Stater = StaticModel.Get<IEngine>(Engine.KEY).Stater;
                 }
@@ -40,6 +40,7 @@
         }
 
         virtual protected IModel internalModel => m_Model;
+        
         virtual protected IEventer eventer => m_Eventer;
         private IStater m_Stater;
         virtual public void Send(string type)
@@ -70,6 +71,8 @@
 
         public bool IsInitialized { get; protected set; }
 
+        bool IInitialize.IsInitialized => throw new NotImplementedException();
+
         virtual public void Dispose()
         {
             if (IsDestroyed) return;
@@ -78,8 +81,8 @@
             IsDestroyed = true;
         }
 
-        virtual public void Initialize()
-        {
-        }
+        abstract public void Initialize();
+
+
     }
 }

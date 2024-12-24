@@ -4,10 +4,12 @@
     using StateEngine.Model;
     using StateEngine.States;
 
-    public interface IStateBehaviour
+    public interface IStaterBehaviour
     {
-        IModel InternalModel { get; }
+        IModel Model { get; }
         IEventer Eventer { get; }
         IStater Stater { get; }
+        IEngine PrimaryStater { get; }
+
     }
 }

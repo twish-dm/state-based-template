@@ -18,14 +18,14 @@
 
         private void LocalButton()
         {
-            Debug.Log("Кнопка вызываемая в локальном стейтере");
+            Debug.Log("локальная кнопка вызываемая в глобальном стейтере");
         }
 
         private void GlobalButton()
         {
-            Debug.Log("нопка вызываемая в глобальном стейтере");
-            InternalModel.Set("global", "global" + Random.Range(0, 100));
-            Viewer.Push("Tesst");
+            Debug.Log("глобалььная кнопка вызываемая в глобальном стейтере");/*
+            Model.Set("global", "global" + Random.Range(0, 100));
+            Viewer.Push("Tesst");*/
         }
 
         public override void Exit()

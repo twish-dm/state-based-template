@@ -106,16 +106,16 @@ namespace StateEngine.Components.Navigation
             directionNavigate.IsPaused = false;
             directionNavigate.NavigationType = Navigate.NavType.NavMeshAgent;
             directionNavigate.Init(this);
-            eventer.Add<DataChangeEvent>(directionField, DirectionHandler);
+            eventer.Add<ModelEvent>(directionField, DirectionHandler);
             directionField = $"{(string.IsNullOrEmpty(directionField) ? name + "Direction" : directionField)}";
             
         }
         public override void Dispose()
         {
-            eventer.Remove<DataChangeEvent>(directionField, DirectionHandler);
+            eventer.Remove<ModelEvent>(directionField, DirectionHandler);
             base.Dispose();
         }
-        virtual protected void DirectionHandler(DataChangeEvent directionEvent)
+        virtual protected void DirectionHandler(ModelEvent directionEvent)
         {
             directionNavigate.Move(directionEvent.GetData<Vector3>());
         }

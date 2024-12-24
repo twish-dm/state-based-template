@@ -4,11 +4,11 @@
 
     public class AdditionalStater : StaterBehaviour
     {
-        // Start is called before the first frame update
-        void Start()
+        public override void Initialize()
         {
             stater.Add(new AdditionalStaterState());
             stater.Start("AdditionalStaterState");
         }
+
     }
 }

@@ -63,5 +63,9 @@ namespace StateEngine.Views
 						}).AsyncWaitForCompletion();
 						
 				}
-		}
+
+        public override void Initialize()
+        {
+        }
+    }
 }

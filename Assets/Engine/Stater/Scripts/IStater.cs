@@ -11,6 +11,6 @@ namespace StateEngine.States
         void Start(string stateName);
         void Change(string stateName);
         void Invoke(string type);
-        void Invoke<T>(string type, T eventData) where T : IEventData;
+        void Invoke<T>(string type, T eventData);
     }
 }

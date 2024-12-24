@@ -25,7 +25,7 @@ namespace StateEngine.Events
             ((UnityEvent)m_EventsData[type]).AddListener(action);
         }
 
-        public void Add<T>(string type, UnityAction<T> action) where T : IEventData
+        public void Add<T>(string type, UnityAction<T> action)
         {
             if (!m_EventsData.ContainsKey(type))
                 m_EventsData.Add(type, new UnityEvent<T>());
@@ -37,7 +37,7 @@ namespace StateEngine.Events
             (m_EventsData[type] as UnityEvent)?.Invoke();
         }
 
-        public void Invoke<T>(string type, T eventData) where T : IEventData
+        public void Invoke<T>(string type, T eventData)
         {
             if (!m_EventsData.ContainsKey(type)) return;
             (m_EventsData[type] as UnityEvent<T>)?.Invoke(eventData);
@@ -59,7 +59,7 @@ namespace StateEngine.Events
             else
                 Debug.LogWarning($"CAN'T REMOVE: [{type}=>{m_EventsData[type].GetType()}]");
         }
-        public void Remove<T>(string type, UnityAction<T> action) where T : IEventData
+        public void Remove<T>(string type, UnityAction<T> action)
         {
             if (m_EventsData.ContainsKey(type) && m_EventsData[type] is UnityEvent<T>)
                 (m_EventsData[type] as UnityEvent<T>).RemoveListener(action);

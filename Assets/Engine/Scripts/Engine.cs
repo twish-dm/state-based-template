@@ -16,14 +16,17 @@
         public const string KEY = "engine";
         private Dictionary<string, UnityEventBase> m_InternalEventsData, m_MainEventsData;
         protected DynamicModel internalModel { get; set; }
-        protected DynamicModel mainModel { get; set; }
+        protected DynamicModel primaryModel { get; set; }
         protected Eventer internalEventer { get; set; }
-        protected Eventer mainEventer { get; set; }
+        protected Eventer primaryEventer { get; set; }
         protected Stater stater { get; set; }
         public IEventer Eventer => internalEventer;
         public IStater Stater => stater;
-        public IModel InternalModel => internalModel;
-        public IModel MainModel => mainModel;
+        public IModel Model => internalModel;
+        public IModel PrimaryModel => primaryModel;
+
+        public IEngine PrimaryStater => this;
+
 
         private void Awake()
         {
@@ -32,10 +35,10 @@
             m_InternalEventsData = new Dictionary<string, UnityEventBase>();
             m_MainEventsData = new Dictionary<string, UnityEventBase>();
             internalEventer = new Eventer(m_InternalEventsData);
-            mainEventer = new Eventer(m_MainEventsData);
+            primaryEventer = new Eventer(m_MainEventsData);
             internalModel = new DynamicModel(internalEventer);
-            mainModel = new DynamicModel(mainEventer);
-            stater = new Stater(internalModel, mainModel);
+            primaryModel = new DynamicModel(primaryEventer);
+            stater = new Stater(internalModel, primaryModel);
             StaticModel.Add(KEY, (IEngine)this);
         }
     }

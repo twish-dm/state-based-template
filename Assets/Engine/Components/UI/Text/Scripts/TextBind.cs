@@ -16,9 +16,9 @@
             modelField = $"{(string.IsNullOrEmpty(modelField) ? name+ "Text" : modelField)}";
 
             Debug.Log(eventer);
-            eventer.Add<DataChangeEvent>(modelField, DataChangeHandler);
+            eventer.Add<ModelEvent>(modelField, DataChangeHandler);
         }
-        private void DataChangeHandler(DataChangeEvent data)
+        private void DataChangeHandler(ModelEvent data)
         {
             if (TryGetComponent(out TextMeshProUGUI tmpro))
             {
@@ -32,7 +32,7 @@
 
         public override void Dispose()
         {
-            eventer.Remove<DataChangeEvent>(modelField, DataChangeHandler);
+            eventer.Remove<ModelEvent>(modelField, DataChangeHandler);
             base.Dispose();
         }
     }

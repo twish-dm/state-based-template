@@ -17,6 +17,10 @@ namespace Assets.Engine.Components.Tools
         {
             m_TimerMap = new Dictionary<string, CancellationTokenSource>();
         }
+
+
+
+
         /// <summary>
         /// Таймер выполняеться один раз, основанный на async
         /// </summary>
@@ -29,9 +33,15 @@ namespace Assets.Engine.Components.Tools
                 Stop(name);
 
             m_TimerMap.Add(name, new CancellationTokenSource());
+
+            float time = Time.realtimeSinceStartup;
             try
             {
-                await Task.Delay(Mathf.RoundToInt(timer * 1000), m_TimerMap[name].Token);
+                while(Time.realtimeSinceStartup - time < timer)
+                {
+                    await Task.Yield();
+                }
+                //await Task.Delay(Mathf.RoundToInt(timer * 1000), m_TimerMap[name].Token);
                 onComplete?.Invoke();
             }
             catch (OperationCanceledException)
@@ -56,7 +66,7 @@ namespace Assets.Engine.Components.Tools
         /// <param name="timer"></param>
         /// <param name="repeat"></param>
         /// <param name="onComplete"></param>
-        async static public void Loop(string name, float timer, UnityAction onLoopComplete, int repeat = -1, UnityAction onComplete = null, bool invokeIfCancelled = false)
+        async static public void Loop(string name, float timer, UnityAction onLoopComplete, int repeat = -1, UnityAction onComplete = null, UnityAction<float> OnTick = null, bool invokeIfCancelled = false)
         {
             if (m_TimerMap.ContainsKey(name))
                 Stop(name);
@@ -100,7 +110,14 @@ namespace Assets.Engine.Components.Tools
                 repeat = repeat < 0 ? 0 : repeat;
                 while (iteration < repeat)
                 {
-                    await Task.Delay(Mathf.RoundToInt(timer * 1000), m_TimerMap[name].Token);
+                    float time = Time.realtimeSinceStartup;
+                    while (Time.realtimeSinceStartup - time < timer)
+                    {
+                        if (!m_TimerMap.ContainsKey(name))
+                            throw new OperationCanceledException();
+                        await Task.Yield();
+                        OnTick?.Invoke((Time.realtimeSinceStartup - time) / timer);
+                    }
                     try
                     {
                         onLoopComplete?.Invoke();

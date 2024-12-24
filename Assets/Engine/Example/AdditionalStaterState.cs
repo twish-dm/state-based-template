@@ -13,24 +13,23 @@
         public override void Enter()
         {
             Eventer.Add("LocalButton", LocalButton);
-            Eventer.Add("GlobalButton", GlobalButton);
+            Eventer.Add("GlobalButton1", GlobalButton);
         }
 
         private void LocalButton()
         {
-            Debug.Log("Кнопка вызываемая в локальном стейтере");
-            InternalModel.Set("local", "local"+Random.Range(0, 100));
+            Debug.Log("локальная кнопка вызываемая в локальная стейтере");
         }
 
         private void GlobalButton()
         {
-            Debug.Log("нопка вызываемая в глобальном стейтере");
+            Debug.Log("глобалььная кнопка вызываемая в локальная стейтере");
         }
 
         public override void Exit()
         {
             Eventer.Remove("LocalButton", LocalButton);
-            Eventer.Remove("GlobalButton", GlobalButton);
+            Eventer.Remove("GlobalButton1", GlobalButton);
         }
     }
 }
