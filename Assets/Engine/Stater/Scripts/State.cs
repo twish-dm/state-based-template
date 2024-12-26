@@ -13,7 +13,7 @@
         virtual public IModel Model { get; set; }
         private Dictionary<string, UnityEventBase> m_EventsData;
         private Eventer m_Eventer;
-        virtual public IEventer Eventer { get => m_Eventer; }
+        virtual public IEventer StateEventer { get => m_Eventer; }
         virtual public IStater Stater { get; set; }
 
         virtual public string Name => GetType().Name;
@@ -24,7 +24,7 @@
 
         virtual public void Dispose()
         {
-            Eventer.Dispose();
+            StateEventer.Dispose();
         }
 
         abstract public void Enter();

@@ -10,6 +10,7 @@
         IEventer Eventer { get; }
         IStater Stater { get; }
         IEngine PrimaryStater { get; }
+        IStaterBehaviour ParentStaterBehaviour { get; }
 
     }
 }

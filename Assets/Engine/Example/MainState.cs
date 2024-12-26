@@ -12,8 +12,8 @@
         }
         public override void Enter()
         {
-            Eventer.Add("LocalButton", LocalButton);
-            Eventer.Add("GlobalButton", GlobalButton);
+            StateEventer.Add("LocalButton", LocalButton);
+            StateEventer.Add("GlobalButton", GlobalButton);
         }
 
         private void LocalButton()
@@ -30,8 +30,8 @@
 
         public override void Exit()
         {
-            Eventer.Remove("LocalButton", LocalButton);
-            Eventer.Remove("GlobalButton", GlobalButton);
+            StateEventer.Remove("LocalButton", LocalButton);
+            StateEventer.Remove("GlobalButton", GlobalButton);
         }
     }
 }

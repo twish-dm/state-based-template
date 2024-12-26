@@ -8,7 +8,7 @@ namespace StateEngine.States
     {
         IModel Model {get; set;}
         IModel PrimaryModel { get; set; }
-        IEventer Eventer { get; }
+        IEventer StateEventer { get; }
         IStater Stater { get; set; }
         IViewer Viewer { get; set; }
         string Name { get; }

@@ -60,12 +60,12 @@ namespace StateEngine.States
 
         virtual public void Invoke(string type)
         {
-            Current?.Eventer.Invoke(type);
+            Current?.StateEventer.Invoke(type);
         }
 
         virtual public void Invoke<T>(string type, T eventData)
         {
-            Current?.Eventer.Invoke(type, eventData);
+            Current?.StateEventer.Invoke(type, eventData);
         }
     }
 }

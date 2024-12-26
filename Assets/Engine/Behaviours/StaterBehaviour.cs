@@ -19,13 +19,12 @@ namespace StateEngine.Behaviours
         protected IModel model { get; set; }
         protected IEventer eventer { get; set; }
         protected Stater stater { get; set; }
-        protected IEngine primaryStater { get; set;}
+        protected IEngine primaryStater { get; set; }
         public IEventer Eventer => eventer;
         public IStater Stater => stater;
         public IModel Model => model;
         public IEngine PrimaryStater => primaryStater;
-
-
+        public IStaterBehaviour ParentStaterBehaviour { get; protected set; }
 
         virtual protected void Awake()
         {
@@ -33,12 +32,13 @@ namespace StateEngine.Behaviours
             {
                 if (primaryStater == null)
                     primaryStater = StaticModel.Get<IEngine>(Engine.KEY);
-
+                ParentStaterBehaviour = transform.parent.GetComponentInParent<StaterBehaviour>();
+                Debug.Log($"{name} => {ParentStaterBehaviour}");
                 m_EventsData = new Dictionary<string, UnityEventBase>();
                 eventer = primaryStater.Eventer;
                 model = primaryStater.Model;
                 stater = new Stater(model, primaryStater.PrimaryModel);
-                
+
                 Debug.Log($"StaterBehaviour[{name}] Initialize");
                 Initialize();
                 IsInitialized = true;
@@ -60,6 +60,8 @@ namespace StateEngine.Behaviours
         public bool IsInitialized { get; protected set; }
 
         bool IInitialize.IsInitialized => throw new NotImplementedException();
+
+
 
         virtual public void Dispose()
         {

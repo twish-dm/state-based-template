@@ -27,6 +27,7 @@
 
         public IEngine PrimaryStater => this;
 
+        public IStaterBehaviour ParentStaterBehaviour => null;
 
         private void Awake()
         {
