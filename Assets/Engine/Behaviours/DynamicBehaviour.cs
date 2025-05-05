@@ -30,7 +30,7 @@
                 {
                     m_GetFromEngine = true;
                     m_Model = StaticModel.Get<IEngine>(Engine.KEY).Model;
-                    m_Eventer = StaticModel.Get<IEngine>(Engine.KEY).Eventer;
+                    m_Eventer = StaticModel.Get<IEngine>(Engine.KEY).Model.Eventer;
                     m_Stater = StaticModel.Get<IEngine>(Engine.KEY).Stater;
                 }
                 Debug.Log($"DynamicBehaviour[{name}] Initialize");
@@ -47,8 +47,9 @@
         {
             m_Stater.Invoke(type);
         }
-        virtual public void Send<T>(string type, T eventData) where T : IEventData
+        virtual public void Send<T>(string type, T eventData)
         {
+            Debug.Log(name+"=> " + m_Stater);
             m_Stater.Invoke(type, eventData);
         }
         private void Update()

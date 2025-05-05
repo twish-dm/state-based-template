@@ -15,6 +15,6 @@ namespace StateEngine.States
         void Enter();
         void Exit();
         void Send(string type);
-        void Send<T>(string type, T eventData) where T : IEventData;
+        void Send<T>(string type, T eventData);
     }
 }

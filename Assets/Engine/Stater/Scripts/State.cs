@@ -45,7 +45,7 @@
             Model.Eventer.Invoke(type);
         }
 
-        public void Send<T>(string type, T eventData) where T : IEventData
+        public void Send<T>(string type, T eventData) 
         {
             Model.Eventer.Invoke(type, eventData);
         }

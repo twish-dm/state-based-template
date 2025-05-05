@@ -16,23 +16,27 @@
             modelField = $"{(string.IsNullOrEmpty(modelField) ? name+ "Text" : modelField)}";
 
             Debug.Log(eventer);
-            eventer.Add<ModelEvent>(modelField, DataChangeHandler);
+            eventer.Add<string>(modelField, DataChangeHandler);
         }
-        private void DataChangeHandler(ModelEvent data)
+        private void Start()
+        {
+            DataChangeHandler(internalModel.GetString(modelField, ""));
+        }
+        private void DataChangeHandler(string data)
         {
             if (TryGetComponent(out TextMeshProUGUI tmpro))
             {
-                tmpro.text = data.GetData<string>();
+                tmpro.text = data.ToString();
             }
             else if (TryGetComponent(out Text text))
             {
-                text.text = data.GetData<string>();
+                text.text = data.ToString();
             }
         }
 
         public override void Dispose()
         {
-            eventer.Remove<ModelEvent>(modelField, DataChangeHandler);
+            eventer.Remove<string>(modelField, DataChangeHandler);
             base.Dispose();
         }
     }

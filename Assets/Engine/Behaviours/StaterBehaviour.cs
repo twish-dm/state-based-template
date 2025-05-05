@@ -34,17 +34,27 @@ namespace StateEngine.Behaviours
                     primaryStater = StaticModel.Get<IEngine>(Engine.KEY);
                 ParentStaterBehaviour = transform.parent.GetComponentInParent<StaterBehaviour>();
                 Debug.Log($"{name} => {ParentStaterBehaviour}");
-                m_EventsData = new Dictionary<string, UnityEventBase>();
-                eventer = primaryStater.Eventer;
-                model = primaryStater.Model;
+                m_EventsData = null;
+
+                if (m_GetFromEngine)
+                {
+                    eventer = primaryStater.Eventer;
+                    model = primaryStater.Model;
+                }
+                else
+                {
+                    m_EventsData = new Dictionary<string, UnityEventBase>();
+                    eventer = new Eventer(m_EventsData);
+                    model = new DynamicModel(eventer);
+                }
                 stater = new Stater(model, primaryStater.PrimaryModel);
 
                 Debug.Log($"StaterBehaviour[{name}] Initialize");
-                Initialize();
                 IsInitialized = true;
+
+                Initialize();
             }
         }
-
 
         virtual public void Send(string type)
         {
@@ -58,10 +68,6 @@ namespace StateEngine.Behaviours
         virtual public bool IsDestroyed { get; protected set; }
 
         public bool IsInitialized { get; protected set; }
-
-        bool IInitialize.IsInitialized => throw new NotImplementedException();
-
-
 
         virtual public void Dispose()
         {

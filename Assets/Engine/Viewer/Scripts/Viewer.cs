@@ -12,6 +12,10 @@ namespace StateEngine.Views
         {
             StaticModel.Add(KEY, this);
         }
+        virtual protected void OnDestroy()
+        {
+            StaticModel.Remove(KEY);
+        }
         protected Stack<string> viewsStack = new Stack<string>();
         protected Dictionary<string, IView> viewsMap = new Dictionary<string, IView>();
         public IView CurrentView { get; protected set; }
@@ -52,9 +56,11 @@ namespace StateEngine.Views
         }
         virtual protected void Remove(string name)
         {
-            
-            viewsMap[name].Dispose();
-            viewsMap.Remove(name);
+            if (viewsMap.ContainsKey(name))
+            {
+                viewsMap[name].Dispose();
+                viewsMap.Remove(name);
+            }
         }
         virtual protected IView Add(string name)
         {
@@ -88,11 +94,13 @@ namespace StateEngine.Views
             }
         }
 
-        virtual protected ViewBase LoadView(string name)
+        virtual protected IView LoadView(string name)
         {
             Debug.Log(name);
-            ViewBase view = Instantiate(Resources.Load<ViewBase>($"Views/{name}"), transform);
-            view.name = view.name.Replace("(Clone)", "");
+            GameObject viewGameObject = Instantiate(Resources.Load<GameObject>($"Views/{name}"), transform);
+            viewGameObject.name = viewGameObject.name.Replace("(Clone)", "");
+            IView view = viewGameObject.GetComponent<IView>();
+            
             return view;
         }
     }

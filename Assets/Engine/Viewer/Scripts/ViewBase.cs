@@ -10,59 +10,34 @@ using UnityEngine.UI;
 
 namespace StateEngine.Views
 {
-		public class ViewBase : DynamicBehaviour, IView
-		{
-				[field: SerializeField] public bool IsOverlay { get; set; }
-				[SerializeField] private Image m_Background;
-				[SerializeField] private RectTransform m_Content;
-				private float m_Alpha;
-				public bool IsFocused { get; protected set; }
+    public class ViewBase : DynamicBehaviour, IView
+    {
+        [field: SerializeField] virtual public bool IsOverlay { get; set; }
+        protected CanvasGroup canvasGroup;
+        virtual public bool IsFocused { get; protected set; }
 
-				virtual protected void OnEnable()
-				{
-						m_Alpha = m_Background.color.a;
-								Color color = m_Background.color;
-						color.a = 0;
-						m_Background.color = color;
-						m_Content.anchoredPosition = Vector2.up * 1920;
-						
-				}
-				virtual protected void OnDisable()
-				{
-						Color color = m_Background.color;
-						color.a = 0;
-						m_Background.color = color;
-						m_Content.anchoredPosition = Vector2.up * 1920;
-				}
-				async virtual public Task FocusIn()
-				{
-						IsFocused = true;
-						m_Background.DOKill();
-						m_Content.DOKill();
+        virtual protected void OnEnable()
+        {
+            canvasGroup = GetComponent<CanvasGroup>();
+            canvasGroup.alpha = 0;
+        }
+        virtual protected void OnDisable()
+        {
+        }
+        async virtual public Task FocusIn()
+        {
+            IsFocused = true;
+            gameObject.SetActive(true);
 
-						gameObject.SetActive(true);
-						m_Background.raycastTarget = true;
-						transform.SetAsLastSibling();
-						m_Background.DOFade(m_Alpha, .25f);
-						await m_Content.DOAnchorPosY(0, .5f).AsyncWaitForCompletion();
-				}
-				async virtual public Task FocusOut()
-				{
-						IsFocused = false;
-						m_Background.DOKill();
-						m_Content.DOKill();
-
-						m_Background.DOFade(0, 0.25f).OnComplete(() =>
-						{
-								m_Background.raycastTarget = false;
-						});
-						await m_Content.DOAnchorPosY(-1920, 0.5f).OnComplete(() =>
-						{
-								gameObject.SetActive(false);
-
-						}).AsyncWaitForCompletion();
-						
-				}
+            transform.SetAsLastSibling();
+            await canvasGroup.DOFade(1f, 0.2f).AsyncWaitForCompletion();
+        }
+        async virtual public Task FocusOut()
+        {
+            IsFocused = false;
+            await canvasGroup.DOFade(0f, 0.2f).AsyncWaitForCompletion();
+            await Task.CompletedTask;
+        }
 
         public override void Initialize()
         {

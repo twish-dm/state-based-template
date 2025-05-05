@@ -4,9 +4,11 @@
     using System.Collections.Generic;
     public interface IModel
     {
+        int id { get; }
         IEventer Eventer { get; }
         void Refresh<T>(string key);
         void Set(string key, object value);
+        void Set<T>(string key, T value);
         void Clear();
         bool Contains(string key);
         bool Remove(string key);
@@ -17,6 +19,7 @@
         bool GetBool(string key, bool def = default);
         DynamicList<T> CreateList<T>(string key);
         DynamicList<T> CreateList<T>(string key, params T[] values);
+        DynamicList<T> CreateList<T>(string key, List<T> values);
         DynamicList<T> GetList<T>(string key, DynamicList<T> def = default);
 
     }
