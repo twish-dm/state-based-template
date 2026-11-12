@@ -1,123 +1,97 @@
+using StateEngine.Behaviours;
+using StateEngine.Events;
+using StateEngine.Models;
+using UnityEngine;
+using UnityEngine.AI;
+
 namespace StateEngine.Components.Navigation
 {
-
-    using StateEngine.Behaviours;
-    using StateEngine.Events;
-    using StateEngine.Model;
-
-    using System;
-    using System.Collections;
-    using System.Collections.Generic;
-
-    using UnityEngine;
-    using UnityEngine.AI;
-
+    /// <summary>
+    /// Follows the <see cref="INavigationStep"/>s stored in a <see cref="DynamicList{T}"/> of the bound model.
+    /// </summary>
     [RequireComponent(typeof(NavMeshAgent))]
     public class NavigateBehaviour : DynamicBehaviour
     {
+        [SerializeField] private NavigationMode m_NavigationType;
         [SerializeField] private bool m_IsLoop;
-        [SerializeField] private Navigate.NavType m_NavigationType;
-        [Header("—сылка на DynamicList<INavigationStep>")]
-        [SerializeField] protected string stepsField;
-        protected Navigate directionNavigate;
         [SerializeField] private bool m_IsPaused;
+
+        [SerializeField, Tooltip("Model key of a DynamicList<INavigationStep>.")]
+        private string m_StepsKey;
+
+        private Navigator m_Navigator;
+
         public bool IsPaused
         {
-            get => directionNavigate != null ? directionNavigate.IsPaused : false;
-            set { if (directionNavigate != null) directionNavigate.IsPaused = value; }
+            get => m_IsPaused;
+            set
+            {
+                m_IsPaused = value;
+                if (m_Navigator != null)
+                    m_Navigator.IsPaused = value;
+            }
         }
-        public bool IsLoop
+
+        public bool IsLooping
         {
-            get => directionNavigate != null && directionNavigate.IsLoop;
-            set { if (directionNavigate != null) directionNavigate.IsLoop = value; }
+            get => m_IsLoop;
+            set
+            {
+                m_IsLoop = value;
+                if (m_Navigator != null)
+                    m_Navigator.IsLooping = value;
+            }
         }
-        private Navigate.NavType navigationType;
-        public Navigate.NavType NavigationType
+
+        protected Navigator Navigator => m_Navigator;
+
+        private string StepsKey => string.IsNullOrEmpty(m_StepsKey) ? name + "Steps" : m_StepsKey;
+
+        protected override void OnInitialize()
         {
-            get => directionNavigate.NavigationType;
-            set { if (directionNavigate != null) directionNavigate.NavigationType = value; }
+            m_Navigator = new Navigator(this)
+            {
+                Mode = m_NavigationType,
+                IsLooping = m_IsLoop,
+                IsPaused = m_IsPaused
+            };
+
+            Eventer.Add<ListEvent<INavigationStep>>(StepsKey, OnStepsChanged);
+        }
+
+        protected virtual void Start()
+        {
+            DynamicList<INavigationStep> steps = Model.GetList<INavigationStep>(StepsKey);
+            if (steps != null)
+                m_Navigator.SetSteps(steps);
+        }
+
+        protected override void OnRelease()
+        {
+            Eventer.Remove<ListEvent<INavigationStep>>(StepsKey, OnStepsChanged);
+            m_Navigator.Stop();
         }
 
         private void OnValidate()
         {
-            if (IsLoop != m_IsLoop)
-                IsLoop = m_IsLoop;
-            if (IsPaused != m_IsPaused)
-                IsPaused = m_IsPaused;
-        }
-        public override void Initialize()
-        {
-            Reset();
-            directionNavigate = new Navigate();
-            IsLoop = m_IsLoop;
+            IsLooping = m_IsLoop;
             IsPaused = m_IsPaused;
-            NavigationType = m_NavigationType;
-            directionNavigate.Init(this);
-            eventer.Add<ListEvent<INavigationStep>>(stepsField, StepsHandler);
-        }
-        virtual protected void Start()
-        {
-            ApplySteps(internalModel.GetList<INavigationStep>(stepsField));
-        }
-        private void Reset()
-        {
-
-            stepsField = $"{(string.IsNullOrEmpty(stepsField) ? name + "Steps" : stepsField)}";
         }
 
-
-        protected void ApplySteps(DynamicList<INavigationStep> steps, INavigationStep modifiedItem = null)
+        protected virtual void OnStepsChanged(ListEvent<INavigationStep> change)
         {
-            if (modifiedItem != null)
-                directionNavigate.ApplyTarget(modifiedItem);
-            else if (steps != null && steps.Count > 0)
+            switch (change.Type)
             {
-                directionNavigate.ClearTargets();
-                for (int i = 0; i < steps.Count; i++)
-                    directionNavigate.ApplyTarget(steps[i]);
+                case ListChangeType.Added:
+                    m_Navigator.AddStep(change.Item);
+                    break;
+                case ListChangeType.Removed:
+                    m_Navigator.RemoveStep(change.Item);
+                    break;
+                default:
+                    m_Navigator.SetSteps(change.List);
+                    break;
             }
-            else
-            {
-                directionNavigate.Stop();
-                directionNavigate.ClearTargets();
-            }
-        }
-        virtual protected void StepsHandler(ListEvent<INavigationStep> stepsEvent)
-        {
-            ApplySteps(stepsEvent.List, stepsEvent.ModifiedItem);
-        }
-        public override void Dispose()
-        {
-            eventer.Remove<ListEvent<INavigationStep>>(stepsField, StepsHandler);
-           
-            base.Dispose();
-        }
-    }
-    public class DirectionBehaviour : DynamicBehaviour
-    {
-
-        [Header("—сылка на Vector3")]
-        [SerializeField] protected string directionField;
-        protected DirectionNavigate directionNavigate;
-        public override void Initialize()
-        {
-            directionNavigate = new DirectionNavigate();
-            directionNavigate.IsLoop = false;
-            directionNavigate.IsPaused = false;
-            directionNavigate.NavigationType = Navigate.NavType.NavMeshAgent;
-            directionNavigate.Init(this);
-            eventer.Add<ModelEvent>(directionField, DirectionHandler);
-            directionField = $"{(string.IsNullOrEmpty(directionField) ? name + "Direction" : directionField)}";
-            
-        }
-        public override void Dispose()
-        {
-            eventer.Remove<ModelEvent>(directionField, DirectionHandler);
-            base.Dispose();
-        }
-        virtual protected void DirectionHandler(ModelEvent directionEvent)
-        {
-            directionNavigate.Move(directionEvent.GetData<Vector3>());
         }
     }
 }

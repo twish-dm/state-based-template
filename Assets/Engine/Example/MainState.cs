@@ -1,37 +1,27 @@
-﻿namespace StateEngine.Example
+using StateEngine.States;
+using UnityEngine;
+
+namespace StateEngine.Example
 {
-    using StateEngine.States;
-
-    using UnityEngine;
-
-    public class MainState : State
+    public sealed class MainState : State
     {
-        public override void Initialize()
+        private int m_GlobalClicks;
+
+        protected override void OnInitialize()
         {
-            base.Initialize();
-        }
-        public override void Enter()
-        {
-            StateEventer.Add("LocalButton", LocalButton);
-            StateEventer.Add("GlobalButton", GlobalButton);
+            Events.Add(ExampleEvents.LocalButton, OnLocalButton);
+            Events.Add(ExampleEvents.GlobalButton, OnGlobalButton);
         }
 
-        private void LocalButton()
+        private void OnLocalButton()
         {
-            Debug.Log("локальная кнопка вызываемая в глобальном стейтере");
+            Debug.Log($"[{Name}] {ExampleEvents.LocalButton}");
         }
 
-        private void GlobalButton()
+        private void OnGlobalButton()
         {
-            Debug.Log("глобалььная кнопка вызываемая в глобальном стейтере");/*
-            Model.Set("global", "global" + Random.Range(0, 100));
-            Viewer.Push("Tesst");*/
-        }
-
-        public override void Exit()
-        {
-            StateEventer.Remove("LocalButton", LocalButton);
-            StateEventer.Remove("GlobalButton", GlobalButton);
+            m_GlobalClicks++;
+            Model.Set(ExampleEvents.GlobalText, $"Global clicks: {m_GlobalClicks}");
         }
     }
 }

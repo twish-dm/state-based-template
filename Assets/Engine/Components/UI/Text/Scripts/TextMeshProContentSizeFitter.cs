@@ -1,163 +1,77 @@
 using TMPro;
 using UnityEngine;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
-[RequireComponent(typeof(TextMeshProUGUI))]
-[DisallowMultipleComponent]
-[ExecuteAlways]
-public class TextMeshProContentSizeFitter : MonoBehaviour
+namespace StateEngine.Components.UI
 {
-    [SerializeField] private bool m_FitToWidth = true;
-    [SerializeField] private float m_MaxWidth; 
-    public enum FitMode
+    /// <summary>
+    /// Resizes the rect to the preferred size of its text, optionally wrapping at a maximum width.
+    /// Reacts to TextMeshPro change events instead of polling every frame.
+    /// </summary>
+    [ExecuteAlways, DisallowMultipleComponent]
+    [RequireComponent(typeof(TextMeshProUGUI))]
+    public sealed class TextMeshProContentSizeFitter : MonoBehaviour
     {
-        Unconstrained,
-        PreferredSize
-    }
+        [SerializeField] private bool m_FitWidth = true;
+        [SerializeField] private bool m_FitHeight = true;
 
-    [SerializeField] private FitMode horizontalFit = FitMode.PreferredSize;
-    [SerializeField] private FitMode verticalFit = FitMode.PreferredSize;
+        [SerializeField, Min(0f), Tooltip("Text wraps at this width. Zero means unlimited.")]
+        private float m_MaxWidth;
 
-    private TextMeshProUGUI textMeshPro;
-    private RectTransform rectTransform;
-    private Vector2 previousSize;
-    private FontStyles previousFontStyle;
-    private TMP_FontAsset previousFont;
-    private float previousFontSize;
+        private TextMeshProUGUI m_Text;
+        private RectTransform m_RectTransform;
+
+        private void OnEnable()
+        {
+            m_Text = GetComponent<TextMeshProUGUI>();
+            m_RectTransform = (RectTransform)transform;
+
+            TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnTextChanged);
+            Refresh();
+        }
+
+        private void OnDisable()
+        {
+            TMPro_EventManager.TEXT_CHANGED_EVENT.Remove(OnTextChanged);
+        }
 
 #if UNITY_EDITOR
-    private void OnValidate()
-    {
-        EditorApplication.delayCall += _OnValidate;
-    }
-
-    private void _OnValidate()
-    {
-        if (this == null) return;
-        AdjustSize(true);
-    }
+        private void OnValidate()
+        {
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (this != null && isActiveAndEnabled)
+                    Refresh();
+            };
+        }
 #endif
 
-    private void Awake()
-    {
-        CacheComponents();
-        CacheTextProperties();
-    }
-
-    private void OnEnable()
-    {
-        CacheComponents();
-#if UNITY_EDITOR
-        EditorApplication.update += EditorUpdate;
-#endif
-        AdjustSize(true);
-    }
-
-    private void OnDisable()
-    {
-#if UNITY_EDITOR
-        EditorApplication.update -= EditorUpdate;
-#endif
-    }
-
-    private void Update()
-    {
-        CheckForChanges();
-    }
-
-#if UNITY_EDITOR
-    private void EditorUpdate()
-    {
-        if (!EditorApplication.isPlaying)
+        [ContextMenu("Refresh")]
+        public void Refresh()
         {
-            CheckForChanges();
-        }
-    }
-#endif
+            if (m_Text == null)
+                return;
 
-    private void CacheComponents()
-    {
-        if (textMeshPro == null) textMeshPro = GetComponent<TextMeshProUGUI>();
-        if (rectTransform == null) rectTransform = GetComponent<RectTransform>();
-    }
+            float widthLimit = m_MaxWidth > 0f ? m_MaxWidth : float.PositiveInfinity;
+            Vector2 preferred = m_Text.GetPreferredValues(m_Text.text, widthLimit, float.PositiveInfinity);
 
-    private void CacheTextProperties()
-    {
-        if (textMeshPro != null)
-        {
-            previousFont = textMeshPro.font;
-            previousFontSize = textMeshPro.fontSize;
-            previousFontStyle = textMeshPro.fontStyle;
-            previousSize = GetPreferredSize();
-        }
-    }
+            if (m_FitWidth)
+                SetSize(RectTransform.Axis.Horizontal, Mathf.Min(preferred.x, widthLimit));
 
-    private bool CheckForChanges()
-    {
-        bool hasChanged = false;
-
-        if (textMeshPro == null || rectTransform == null)
-            return false;
-
-        // Проверка изменений свойств шрифта
-        if (previousFont != textMeshPro.font ||
-            previousFontSize != textMeshPro.fontSize ||
-            previousFontStyle != textMeshPro.fontStyle)
-        {
-            hasChanged = true;
-            CacheTextProperties();
+            if (m_FitHeight)
+                SetSize(RectTransform.Axis.Vertical, preferred.y);
         }
 
-        // Проверка изменения размеров текста
-        Vector2 currentSize = GetPreferredSize();
-        if (currentSize != previousSize)
+        private void OnTextChanged(Object changed)
         {
-            hasChanged = true;
-            previousSize = currentSize;
+            if (changed == m_Text)
+                Refresh();
         }
 
-        if (hasChanged)
+        private void SetSize(RectTransform.Axis axis, float size)
         {
-            AdjustSize();
-        }
-
-        return hasChanged;
-    }
-
-    private Vector2 GetPreferredSize()
-    {
-        if (textMeshPro == null) return Vector2.zero;
-
-        textMeshPro.ForceMeshUpdate(true, true);
-        return new Vector2(
-            Mathf.Min(textMeshPro.preferredWidth, this.m_FitToWidth?m_MaxWidth: textMeshPro.preferredWidth),
-            textMeshPro.preferredHeight
-        );
-    }
-
-    public void AdjustSize(bool forceUpdate = false)
-    {
-        if (textMeshPro == null || rectTransform == null)
-            return;
-
-        Vector2 preferredSize = GetPreferredSize();
-
-        if (horizontalFit == FitMode.PreferredSize || forceUpdate)
-        {
-            rectTransform.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Horizontal,
-                preferredSize.x
-            );
-        }
-
-        if (verticalFit == FitMode.PreferredSize || forceUpdate)
-        {
-            rectTransform.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Vertical,
-                preferredSize.y
-            );
+            float current = axis == RectTransform.Axis.Horizontal ? m_RectTransform.rect.width : m_RectTransform.rect.height;
+            if (!Mathf.Approximately(current, size))
+                m_RectTransform.SetSizeWithCurrentAnchors(axis, size);
         }
     }
 }

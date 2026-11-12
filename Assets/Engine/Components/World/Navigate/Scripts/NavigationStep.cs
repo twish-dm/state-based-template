@@ -1,57 +1,60 @@
-﻿namespace StateEngine.Components.Navigation
+using StateEngine.Behaviours;
+using StateEngine.Models;
+using UnityEngine;
+
+namespace StateEngine.Components.Navigation
 {
-    using StateEngine.Behaviours;
-
-    using UnityEngine;
-
+    /// <summary>
+    /// Registers its position as a waypoint in a model list consumed by <see cref="NavigateBehaviour"/>.
+    /// </summary>
     public class NavigationStep : DynamicBehaviour, INavigationStep
     {
+        [SerializeField, Tooltip("Lower values are visited first.")]
+        private int m_Priority;
 
-        [field: SerializeField] public int Priority { get; protected set; }
-        [Header("Ссылка на DynamicList<INavigationStep>")]
-        [SerializeField] protected string stepsField;
+        [SerializeField, Tooltip("Model key of a DynamicList<INavigationStep>.")]
+        private string m_StepsKey;
 
-        public Vector3 StepPosition => transform.position;
+        public int Priority => m_Priority;
 
+        public Vector3 Position => transform.position;
 
-        private void Start()
+        protected override void OnInitialize()
         {
-            if (string.IsNullOrEmpty(stepsField))
+            if (string.IsNullOrEmpty(m_StepsKey))
             {
-                throw new System.Exception("Добавьте ссылку на DynamicList<INavigationStep>");
+                Debug.LogError($"{nameof(NavigationStep)} on '{name}' has no steps key assigned.", this);
+                enabled = false;
             }
-            if (!internalModel.Contains(stepsField))
-                internalModel.CreateList<INavigationStep>(stepsField);
-            if (!internalModel.GetList<INavigationStep>(stepsField).Contains(this))
-                internalModel.GetList<INavigationStep>(stepsField).Add(this);
-        }
-        virtual protected void OnEnable()
-        {
-
-        }
-        virtual protected void OnDisable()
-        {
-
-        }
-        public override void Dispose()
-        {
-            if (internalModel.Contains(stepsField) && internalModel.GetList<INavigationStep>(stepsField).Contains(this))
-                internalModel.GetList<INavigationStep>(stepsField).Remove(this);
-            base.Dispose();
         }
 
-        public void StepReached(GameObject entity)
+        protected virtual void Start()
         {
-            Debug.Log("STEP REACHED");
+            DynamicList<INavigationStep> steps = Model.GetList<INavigationStep>(m_StepsKey)
+                ?? Model.CreateList<INavigationStep>(m_StepsKey);
+
+            if (!steps.Contains(this))
+                steps.Add(this);
         }
 
-        public void StepStarted(GameObject entity)
+        protected override void OnRelease()
         {
-            Debug.Log("STEP STARTED");
+            if (!string.IsNullOrEmpty(m_StepsKey))
+                Model.GetList<INavigationStep>(m_StepsKey)?.Remove(this);
         }
 
-        public override void Initialize()
+        public virtual void OnStepStarted(GameObject traveller)
         {
+        }
+
+        public virtual void OnStepReached(GameObject traveller)
+        {
+        }
+
+        private void OnDrawGizmos()
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(transform.position, 0.25f);
         }
     }
 }

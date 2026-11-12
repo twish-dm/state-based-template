@@ -51,7 +51,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aae11a62088ed9542aab11dfcd5282ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  <IsOverlay>k__BackingField: 0
+  m_IsOverlay: 0
   m_Background: {fileID: 2903535758854855218}
   m_Content: {fileID: 2903535760433785038}
 --- !u!1 &2903535758854855228

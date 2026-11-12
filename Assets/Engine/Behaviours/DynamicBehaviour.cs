@@ -1,89 +1,74 @@
-﻿namespace StateEngine.Behaviours
+using System;
+using StateEngine.Events;
+using StateEngine.Models;
+using StateEngine.States;
+using UnityEngine;
+
+namespace StateEngine.Behaviours
 {
-    using StateEngine.Model;
-    using StateEngine.Events;
-    using System;
-    using UnityEngine;
-    using UnityEngine.Events;
-    using StateEngine.States;
-
-    abstract public class DynamicBehaviour : MonoBehaviour, IInitialize
+    /// <summary>
+    /// Base for components that read and write a model. Binds to the nearest <see cref="IStateContext"/>
+    /// up the hierarchy, or to the engine if there is none.
+    /// </summary>
+    public abstract class DynamicBehaviour : MonoBehaviour, IDisposable
     {
-        [SerializeField] protected bool m_GetFromEngine;
-        protected event UnityAction onUpdate, onFixedUpdate, onLateUpdate;
-        private IModel m_Model;
-        private IEventer m_Eventer;
+        [SerializeField, Tooltip("Bind to the engine context even if a parent state machine exists.")]
+        private bool m_UseEngineContext;
 
-        virtual protected void Awake()
+        private IStateContext m_Context;
+
+        public bool IsInitialized { get; private set; }
+
+        protected IModel Model => m_Context.Model;
+
+        protected IEventer Eventer => m_Context.Eventer;
+
+        protected IStater Stater => m_Context.Stater;
+
+        protected virtual void Awake()
+        {
+            m_Context = ResolveContext();
+            IsInitialized = true;
+            OnInitialize();
+        }
+
+        protected virtual void OnDestroy()
         {
             if (!IsInitialized)
+                return;
+
+            OnRelease();
+            IsInitialized = false;
+        }
+
+        public void Dispose() => Destroy(gameObject);
+
+        /// <summary>
+        /// Called once from Awake after the context is resolved. Subscribe to the model here.
+        /// </summary>
+        protected abstract void OnInitialize();
+
+        /// <summary>
+        /// Called from OnDestroy. Undo everything done in <see cref="OnInitialize"/>.
+        /// </summary>
+        protected virtual void OnRelease()
+        {
+        }
+
+        protected void Send(string type) => Stater.Invoke(type);
+
+        protected void Send<T>(string type, T data) => Stater.Invoke(type, data);
+
+        private IStateContext ResolveContext()
+        {
+            if (!m_UseEngineContext)
             {
-                IStaterBehaviour parentStater = GetComponentInParent<IStaterBehaviour>();
-
-                if (!m_GetFromEngine && parentStater != null)
-                {
-                    m_Model = parentStater.Model;
-                    m_Eventer = parentStater.Eventer;
-                    m_Stater = parentStater.Stater;
-                }
-                else
-                {
-                    m_GetFromEngine = true;
-                    m_Model = StaticModel.Get<IEngine>(Engine.KEY).Model;
-                    m_Eventer = StaticModel.Get<IEngine>(Engine.KEY).Model.Eventer;
-                    m_Stater = StaticModel.Get<IEngine>(Engine.KEY).Stater;
-                }
-                Debug.Log($"DynamicBehaviour[{name}] Initialize");
-                Initialize();
-                IsInitialized = true;
+                IStateContext parent = GetComponentInParent<IStateContext>();
+                if (parent != null)
+                    return parent;
             }
+
+            return ServiceRegistry.Get<IEngine>();
         }
-
-        virtual protected IModel internalModel => m_Model;
-        
-        virtual protected IEventer eventer => m_Eventer;
-        private IStater m_Stater;
-        virtual public void Send(string type)
-        {
-            m_Stater.Invoke(type);
-        }
-        virtual public void Send<T>(string type, T eventData)
-        {
-            Debug.Log(name+"=> " + m_Stater);
-            m_Stater.Invoke(type, eventData);
-        }
-        private void Update()
-        {
-            if (IsDestroyed) return;
-            onUpdate?.Invoke();
-        }
-        private void FixedUpdate()
-        {
-            if (IsDestroyed) return;
-            onFixedUpdate?.Invoke();
-        }
-        private void LateUpdate()
-        {
-            if (IsDestroyed) return;
-            onLateUpdate?.Invoke();
-        }
-
-        virtual public bool IsDestroyed { get; protected set; }
-
-        public bool IsInitialized { get; protected set; }
-
-        bool IInitialize.IsInitialized => throw new NotImplementedException();
-
-        virtual public void Dispose()
-        {
-            if (IsDestroyed) return;
-            gameObject.SetActive(false);
-            Destroy(gameObject);
-            IsDestroyed = true;
-        }
-
-        abstract public void Initialize();
-
-
     }
 }

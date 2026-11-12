@@ -1,152 +1,69 @@
-﻿namespace StateEngine.Model
+using System;
+using System.Collections.Generic;
+using StateEngine.Events;
+
+namespace StateEngine.Models
 {
-    using StateEngine.Events;
-
-    using System;
-    using System.Collections;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Runtime.Serialization;
-    using System.Text;
-    using System.Threading.Tasks;
-
-    using UnityEngine;
-
     public class DynamicModel : IModel
     {
-        static private int m_Id = 0;
-        protected Dictionary<string, object> data;
-        public IEventer Eventer { get; }
-        public ICollection<string> Keys => data.Keys;
-        public ICollection<object> Values => data.Values;
-        public int Count => data.Count;
+        private static int s_NextId;
 
-        public int id { get; }
+        private readonly Dictionary<string, object> m_Values = new Dictionary<string, object>();
 
         public DynamicModel(IEventer eventer)
         {
-            id = m_Id;
-            Eventer = eventer;
-            data = new Dictionary<string, object>();
-            m_Id++;
+            Eventer = eventer ?? throw new ArgumentNullException(nameof(eventer));
+            Id = ++s_NextId;
         }
 
+        public int Id { get; }
 
-        virtual public object this[string key]
+        public IEventer Eventer { get; }
+
+        public int Count => m_Values.Count;
+
+        public IEnumerable<string> Keys => m_Values.Keys;
+
+        public bool Contains(string key) => m_Values.ContainsKey(key);
+
+        public T Get<T>(string key, T fallback = default) => TryGet(key, out T value) ? value : fallback;
+
+        public bool TryGet<T>(string key, out T value)
         {
-            get => data[key];
-            set
+            if (m_Values.TryGetValue(key, out object raw) && raw is T typed)
             {
-                bool contains = Contains(key);
-                data[key] = value;
-                Eventer.Invoke(key, value);
-              // Debug.Log($"({id})[{key}]=>{value}");
+                value = typed;
+                return true;
             }
+
+            value = default;
+            return false;
         }
-        public void Set(string key, object value)
+
+        public virtual void Set<T>(string key, T value)
         {
-            if (!data.ContainsKey(key))
-            {
-                data.Add(key, value);
-            }
-            else
-            {
-                data[key] = value;
-            }
-
-
+            m_Values[key] = value;
             Eventer.Invoke(key, value);
-           // Debug.Log($"Set<object> e=>{Eventer.id}({id})[{key}]=>{value}");
-        }
-        public void Set<T>(string key, T value)
-        {
-            if (!data.ContainsKey(key))
-            {
-                data.Add(key, value);
-            }
-            else
-            {
-                data[key] = value;
-            }
-
-
-            Eventer.Invoke(key, value);
-            //Debug.Log($"Set<T> e=>{Eventer.id}({id})[{key}]=>{value}");
-        }
-        public DynamicList<T> CreateList<T>(string key)
-        {
-            DynamicList<T> list = new DynamicList<T>(key, Eventer);
-            Set(key, list);
-            return list;
-        }
-        public DynamicList<T> CreateList<T>(string key, params T[] values)
-        {
-            DynamicList<T> list = new DynamicList<T>(key, Eventer, values);
-            Set(key, list);
-            return list;
-        }
-        public DynamicList<T> CreateList<T>(string key, List<T> values)
-        {
-            DynamicList<T> list = new DynamicList<T>(key, Eventer, values);
-            Set(key, list);
-            return list;
-        }
-        public void Add(KeyValuePair<string, object> item)
-        {
-            Set(item.Key, item.Value);
         }
 
-        public void Clear()
-        {
-            foreach (string key in data.Keys)
-                Eventer.Invoke<object>(key, null);
-            data.Clear();
-        }
+        public virtual bool Remove(string key) => m_Values.Remove(key);
 
         public void Refresh<T>(string key)
         {
-            Eventer.Invoke<T>(key, Get<T>(key));
+            if (TryGet(key, out T value))
+                Eventer.Invoke(key, value);
         }
 
+        public virtual void Clear() => m_Values.Clear();
 
-        public bool Contains(string key)
+        public DynamicList<T> CreateList<T>(string key, IEnumerable<T> items = null)
         {
-            return data.ContainsKey(key);
-        }
-
-        public bool Remove(string key)
-        {
-            Eventer.Invoke(key, data[key]);
-            bool result = data.Remove(key);
-            return result;
+            var list = new DynamicList<T>(key, Eventer, items);
+            m_Values[key] = list;
+            Eventer.Invoke(key, new ListEvent<T>(ListChangeType.Cleared, list));
+            return list;
         }
 
-        public T Get<T>(string key, T def = default)
-        {
-            return Contains(key) ? (T)data[key] : def;
-        }
-        public float GetFloat(string key, float def = default)
-        {
-            return Contains(key) ? (float)data[key] : def;
-        }
-        public int GetInt(string key, int def = default)
-        {
-            return Contains(key) ? (int)data[key] : def;
-        }
-        public string GetString(string key, string def = default)
-        {
-            return Contains(key) ? (string)data[key] : def;
-        }
-        public DynamicList<T> GetList<T>(string key, DynamicList<T> def = default)
-        {
-            return Contains(key) ? (DynamicList<T>)data[key] : def;
-        }
-
-        public bool GetBool(string key, bool def = false)
-        {
-            return Contains(key) ? (bool)data[key] : def;
-        }
-
-
+        public DynamicList<T> GetList<T>(string key) => Get<DynamicList<T>>(key);
     }
 }

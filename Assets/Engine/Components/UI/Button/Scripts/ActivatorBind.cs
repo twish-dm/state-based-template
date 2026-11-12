@@ -1,44 +1,33 @@
-﻿namespace StateEngine.Components
+using StateEngine.Behaviours;
+using UnityEngine;
+
+namespace StateEngine.Components
 {
-    using StateEngine.Behaviours;
-
-    using UnityEngine;
-    using UnityEngine.Events;
-    using UnityEngine.UI;
-
-    public class ActivatorBind : DynamicBehaviour
+    /// <summary>
+    /// Toggles the GameObject from a boolean model value.
+    /// </summary>
+    public sealed class ActivatorBind : BindingBehaviour
     {
-        [SerializeField] protected string modelField;
-        [SerializeField] protected bool defaultValue;
-        [SerializeField] protected bool isInversed;
-        protected Button button;
-        private void OnValidate()
+        [SerializeField] private bool m_DefaultValue;
+        [SerializeField] private bool m_Invert;
+
+        protected override string KeySuffix => "Activator";
+
+        protected override void OnInitialize()
         {
-            modelField = $"{(string.IsNullOrEmpty(modelField) ? name + "Activator" : modelField)}";
+            Eventer.Add<bool>(Key, Apply);
         }
-        override public void Initialize()
-        {
-            modelField = $"{(string.IsNullOrEmpty(modelField) ? name + "Activator" : modelField)}";
-            eventer.Add<bool>(modelField, ActivateHandler);
-        }
+
         private void Start()
         {
-            Debug.Log($"{name} eventer=>{eventer.id}");
-            Debug.Log($"{modelField}=>{internalModel.GetBool(modelField, defaultValue)} && && {eventer == internalModel.Eventer}");
-            ActivateHandler(internalModel.GetBool(modelField, defaultValue));
-        }
-        private void ActivateHandler(bool value)
-        {
-            Debug.Log($"ActivateHandler ({internalModel.id}){modelField}=>{internalModel.GetBool(modelField, defaultValue)} && && {eventer == internalModel.Eventer}");
-            if (isInversed)
-                value = !value;
-            gameObject.SetActive(value);
+            Apply(Model.Get(Key, m_DefaultValue));
         }
 
-        public override void Dispose()
+        protected override void OnRelease()
         {
-            //eventer.Remove<bool>(modelField, ActivateHandler);
-            base.Dispose();
+            Eventer.Remove<bool>(Key, Apply);
         }
+
+        private void Apply(bool value) => gameObject.SetActive(value != m_Invert);
     }
 }

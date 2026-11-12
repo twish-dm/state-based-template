@@ -1,150 +1,143 @@
-﻿
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-
 using UnityEngine;
-using UnityEngine.Events;
 
-namespace Assets.Engine.Components.Tools
+namespace StateEngine.Utilities
 {
-    public class Timer
+    /// <summary>
+    /// Named timers driven by the Unity main thread. Starting a timer with an existing id replaces it.
+    /// Time is measured in unscaled real time.
+    /// </summary>
+    public static class Timer
     {
-        static private Dictionary<string, CancellationTokenSource> m_TimerMap;
-        static Timer()
+        private static readonly Dictionary<string, CancellationTokenSource> s_Timers =
+            new Dictionary<string, CancellationTokenSource>();
+
+        public static bool IsRunning(string id) => s_Timers.ContainsKey(id);
+
+        public static void Once(string id, float delay, Action onComplete, bool invokeIfStopped = false)
         {
-            m_TimerMap = new Dictionary<string, CancellationTokenSource>();
+            Run(id, delay, 1, null, null, onComplete, invokeIfStopped);
         }
 
-
-
-
-        /// <summary>
-        /// Таймер выполняеться один раз, основанный на async
-        /// </summary>
-        /// <param name="name">имя, нужно для остановки</param>
-        /// <param name="timer"></param>
-        /// <param name="onComplete"></param>
-        async static public void Once(string name, float timer, UnityAction onComplete, bool invokeIfCancelled = false)
+        /// <param name="repeatCount">Number of iterations, or a negative value to repeat until stopped.</param>
+        /// <param name="onTick">Receives normalized progress of the current iteration every frame.</param>
+        public static void Loop(
+            string id,
+            float interval,
+            Action onIteration,
+            int repeatCount = -1,
+            Action onComplete = null,
+            Action<float> onTick = null,
+            bool invokeIfStopped = false)
         {
-            if (m_TimerMap.ContainsKey(name))
-                Stop(name);
+            Run(id, interval, repeatCount, onIteration, onTick, onComplete, invokeIfStopped);
+        }
 
-            m_TimerMap.Add(name, new CancellationTokenSource());
+        public static void Stop(string id)
+        {
+            if (s_Timers.TryGetValue(id, out CancellationTokenSource source))
+            {
+                s_Timers.Remove(id);
+                source.Cancel();
+            }
+        }
 
-            float time = Time.realtimeSinceStartup;
+        public static void StopAll()
+        {
+            var sources = new List<CancellationTokenSource>(s_Timers.Values);
+            s_Timers.Clear();
+
+            foreach (CancellationTokenSource source in sources)
+                source.Cancel();
+        }
+
+        private static void Run(
+            string id,
+            float interval,
+            int repeatCount,
+            Action onIteration,
+            Action<float> onTick,
+            Action onComplete,
+            bool invokeIfStopped)
+        {
+            if (string.IsNullOrEmpty(id))
+                throw new ArgumentException("Timer id cannot be empty.", nameof(id));
+
+            if (interval < 0f)
+                throw new ArgumentOutOfRangeException(nameof(interval), interval, "Interval cannot be negative.");
+
+            Stop(id);
+
+            var source = new CancellationTokenSource();
+            s_Timers[id] = source;
+
+            Execute(id, source, interval, repeatCount, onIteration, onTick, onComplete, invokeIfStopped);
+        }
+
+        private static async void Execute(
+            string id,
+            CancellationTokenSource source,
+            float interval,
+            int repeatCount,
+            Action onIteration,
+            Action<float> onTick,
+            Action onComplete,
+            bool invokeIfStopped)
+        {
             try
             {
-                while(Time.realtimeSinceStartup - time < timer)
-                {
-                    await Task.Yield();
-                }
-                //await Task.Delay(Mathf.RoundToInt(timer * 1000), m_TimerMap[name].Token);
-                onComplete?.Invoke();
-            }
-            catch (OperationCanceledException)
-            {
-                if (invokeIfCancelled)
+                bool finished = await RunIterations(interval, repeatCount, onIteration, onTick, source.Token);
+
+                if (finished || invokeIfStopped)
                     onComplete?.Invoke();
             }
-            finally
+            catch (Exception exception)
             {
-                if (m_TimerMap.ContainsKey(name))
-                {
-                    m_TimerMap[name]?.Cancel();
-                    m_TimerMap[name] = null;
-                    m_TimerMap.Remove(name);
-                }
-            }
-        }
-        /// <summary>
-        /// Таймер выполняеться несколько раз или до остановки, основанный на async
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="timer"></param>
-        /// <param name="repeat"></param>
-        /// <param name="onComplete"></param>
-        async static public void Loop(string name, float timer, UnityAction onLoopComplete, int repeat = -1, UnityAction onComplete = null, UnityAction<float> OnTick = null, bool invokeIfCancelled = false)
-        {
-            if (m_TimerMap.ContainsKey(name))
-                Stop(name);
-            m_TimerMap.Add(name, new CancellationTokenSource());
-            try
-            {
-                await Timer();
-            }
-            catch (OperationCanceledException)
-            {
-                if (invokeIfCancelled)
-                    try
-                    {
-                        onComplete?.Invoke();
-                    }
-                    catch (Exception)
-                    {
-                        Debug.LogError("Invoked after destroyed");
-                    }
+                Debug.LogException(exception);
             }
             finally
             {
-                if (m_TimerMap.ContainsKey(name))
-                {
-                    m_TimerMap[name].Cancel();
-                    m_TimerMap[name] = null;
-                    m_TimerMap.Remove(name);
-                }
-            }
-            try
-            {
-                onComplete?.Invoke();
-            }
-            catch (Exception)
-            {
-                Debug.LogError("Invoked after destroyed");
-            }
-            async Task Timer()
-            {
-                int iteration = repeat < 0 ? -1 : 0;
-                repeat = repeat < 0 ? 0 : repeat;
-                while (iteration < repeat)
-                {
-                    float time = Time.realtimeSinceStartup;
-                    while (Time.realtimeSinceStartup - time < timer)
-                    {
-                        if (!m_TimerMap.ContainsKey(name))
-                            throw new OperationCanceledException();
-                        await Task.Yield();
-                        OnTick?.Invoke((Time.realtimeSinceStartup - time) / timer);
-                    }
-                    try
-                    {
-                        onLoopComplete?.Invoke();
-                    }
-                    catch (Exception)
-                    {
-                        Debug.LogError("Invoked after destroyed");
-                    }
-                }
+                if (s_Timers.TryGetValue(id, out CancellationTokenSource current) && current == source)
+                    s_Timers.Remove(id);
+
+                source.Dispose();
             }
         }
-        static public void Stop(string name)
+
+        private static async Task<bool> RunIterations(
+            float interval,
+            int repeatCount,
+            Action onIteration,
+            Action<float> onTick,
+            CancellationToken token)
         {
-            if (m_TimerMap.TryGetValue(name, out CancellationTokenSource value))
+            for (int i = 0; repeatCount < 0 || i < repeatCount; i++)
             {
-                value.Cancel();
-                value = null;
-                m_TimerMap[name] = null;
-                m_TimerMap.Remove(name);
+                float startTime = Time.realtimeSinceStartup;
+                float elapsed;
+
+                do
+                {
+                    await Task.Yield();
+
+                    if (token.IsCancellationRequested || !Application.isPlaying)
+                        return false;
+
+                    elapsed = Time.realtimeSinceStartup - startTime;
+                    onTick?.Invoke(interval > 0f ? Mathf.Clamp01(elapsed / interval) : 1f);
+                }
+                while (elapsed < interval);
+
+                onIteration?.Invoke();
             }
+
+            return true;
         }
-        static public void Stop()
-        {
-            foreach (string key in m_TimerMap.Keys)
-            {
-                Stop(key);
-            }
-        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetOnPlayModeEnter() => StopAll();
     }
 }

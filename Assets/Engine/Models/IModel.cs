@@ -1,26 +1,33 @@
-﻿namespace StateEngine.Model
+using System.Collections.Generic;
+using StateEngine.Events;
+
+namespace StateEngine.Models
 {
-    using StateEngine.Events;
-    using System.Collections.Generic;
+    /// <summary>
+    /// Key-value storage that notifies subscribers of <see cref="Eventer"/> whenever a value is set.
+    /// </summary>
     public interface IModel
     {
-        int id { get; }
-        IEventer Eventer { get; }
-        void Refresh<T>(string key);
-        void Set(string key, object value);
-        void Set<T>(string key, T value);
-        void Clear();
-        bool Contains(string key);
-        bool Remove(string key);
-        T Get<T>(string key, T def = default);
-        float GetFloat(string key, float def = default);
-        int GetInt(string key, int def = default);
-        string GetString(string key, string def = default);
-        bool GetBool(string key, bool def = default);
-        DynamicList<T> CreateList<T>(string key);
-        DynamicList<T> CreateList<T>(string key, params T[] values);
-        DynamicList<T> CreateList<T>(string key, List<T> values);
-        DynamicList<T> GetList<T>(string key, DynamicList<T> def = default);
+        int Id { get; }
 
+        IEventer Eventer { get; }
+
+        bool Contains(string key);
+
+        T Get<T>(string key, T fallback = default);
+
+        bool TryGet<T>(string key, out T value);
+
+        void Set<T>(string key, T value);
+
+        bool Remove(string key);
+
+        void Refresh<T>(string key);
+
+        void Clear();
+
+        DynamicList<T> CreateList<T>(string key, IEnumerable<T> items = null);
+
+        DynamicList<T> GetList<T>(string key);
     }
 }

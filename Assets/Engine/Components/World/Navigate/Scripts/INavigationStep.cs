@@ -1,12 +1,14 @@
-﻿namespace StateEngine.Components.Navigation
-{
-    using StateEngine.Models;
+using StateEngine.Models;
+using UnityEngine;
 
-    using UnityEngine;
+namespace StateEngine.Components.Navigation
+{
     public interface INavigationStep : IPriority
     {
-        Vector3 StepPosition { get; }
-        void StepReached(GameObject entity);
-        void StepStarted(GameObject entity);
+        Vector3 Position { get; }
+
+        void OnStepStarted(GameObject traveller);
+
+        void OnStepReached(GameObject traveller);
     }
 }

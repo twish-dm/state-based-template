@@ -1,33 +1,30 @@
-﻿namespace StateEngine.Components
+using StateEngine.Behaviours;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace StateEngine.Components
 {
-    using StateEngine.Behaviours;
-
-    using System;
-
-    using UnityEngine;
-    using UnityEngine.UI;
-
+    /// <summary>
+    /// Sends <see cref="BindingBehaviour.Key"/> to the active state when the button is clicked.
+    /// </summary>
     [RequireComponent(typeof(Button))]
-    public class ButtonBind : DynamicBehaviour
+    public sealed class ButtonBind : BindingBehaviour
     {
-        [SerializeField] protected string modelField;
-        protected Button button;
-        override public void Initialize()
+        private Button m_Button;
+
+        protected override string KeySuffix => "Button";
+
+        protected override void OnInitialize()
         {
-            modelField = $"{(string.IsNullOrEmpty(modelField) ? name+ "Button" : modelField)}";
-            button = GetComponent<Button>();
-            button.onClick.AddListener(ClickHandler);
+            m_Button = GetComponent<Button>();
+            m_Button.onClick.AddListener(OnClick);
         }
 
-        private void ClickHandler()
+        protected override void OnRelease()
         {
-            Send(modelField);
+            m_Button.onClick.RemoveListener(OnClick);
         }
 
-        public override void Dispose()
-        {
-            button.onClick.RemoveListener(ClickHandler);
-            base.Dispose();
-        }
+        private void OnClick() => Send(Key);
     }
 }

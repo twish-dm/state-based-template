@@ -1,46 +1,41 @@
-﻿namespace StateEngine
+using StateEngine.Events;
+using StateEngine.Models;
+using StateEngine.States;
+using UnityEngine;
+
+namespace StateEngine
 {
-    using StateEngine.Events;
-    using StateEngine.Model;
-    using StateEngine.States;
-
-    using System;
-    using System.Collections.Generic;
-
-    using UnityEngine;
-    using UnityEngine.Events;
-
     [DefaultExecutionOrder(-1200)]
     public class Engine : MonoBehaviour, IEngine
     {
-        public const string KEY = "engine";
-        private Dictionary<string, UnityEventBase> m_InternalEventsData, m_MainEventsData;
-        protected DynamicModel internalModel { get; set; }
-        protected DynamicModel primaryModel { get; set; }
-        protected Eventer internalEventer { get; set; }
-        protected Eventer primaryEventer { get; set; }
-        protected Stater stater { get; set; }
-        public IEventer Eventer => internalEventer;
-        public IStater Stater => stater;
-        public IModel Model => internalModel;
-        public IModel PrimaryModel => primaryModel;
+        private DynamicModel m_Model;
+        private DynamicModel m_PrimaryModel;
+        private Stater m_Stater;
 
-        public IEngine PrimaryStater => this;
+        public IModel Model => m_Model;
 
-        public IStaterBehaviour ParentStaterBehaviour => null;
+        public IEventer Eventer => m_Model.Eventer;
 
-        private void Awake()
+        public IStater Stater => m_Stater;
+
+        public IModel PrimaryModel => m_PrimaryModel;
+
+        protected virtual void Awake()
         {
-            if (StaticModel.ContainsKey(KEY))
-                throw new Exception("Engine already running");
-            m_InternalEventsData = new Dictionary<string, UnityEventBase>();
-            m_MainEventsData = new Dictionary<string, UnityEventBase>();
-            internalEventer = new Eventer(m_InternalEventsData);
-            primaryEventer = new Eventer(m_MainEventsData);
-            internalModel = new DynamicModel(internalEventer);
-            primaryModel = new DynamicModel(primaryEventer);
-            stater = new Stater(internalModel, primaryModel);
-            StaticModel.Add(KEY, (IEngine)this);
+            ServiceRegistry.Register<IEngine>(this);
+
+            m_Model = new DynamicModel(new Eventer());
+            m_PrimaryModel = new DynamicModel(new Eventer());
+            m_Stater = new Stater(m_Model, m_PrimaryModel);
+        }
+
+        protected virtual void OnDestroy()
+        {
+            ServiceRegistry.Unregister<IEngine>(this);
+
+            m_Stater?.Dispose();
+            m_Model?.Eventer.Dispose();
+            m_PrimaryModel?.Eventer.Dispose();
         }
     }
 }

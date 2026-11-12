@@ -1,108 +1,86 @@
-﻿
+using System;
 using System.Collections.Generic;
-
-using UnityEngine;
 using UnityEngine.Events;
 
 namespace StateEngine.Events
 {
-    public class Eventer : IEventer
+    public sealed class Eventer : IEventer
     {
-        static private int m_Id;
+        private static int s_NextId;
+
+        private readonly Dictionary<string, UnityEventBase> m_Events = new Dictionary<string, UnityEventBase>();
+
         public Eventer()
         {
-            m_EventsData = new Dictionary<string, UnityEventBase>();
-            m_Id++;
-        }
-        public Eventer(Dictionary<string, UnityEventBase> eventsData) : this()
-        {
-            m_EventsData = eventsData;
-        }
-        private Dictionary<string, UnityEventBase> m_EventsData;
-
-        public int id => m_Id;
-
-        public void Add(string type, UnityAction action)
-        {
-            if (!m_EventsData.ContainsKey(type))
-                m_EventsData.Add(type, new UnityEvent());
-            ((UnityEvent)m_EventsData[type]).AddListener(action);
-
-            Debug.Log($"({id})[{type}] added;");
+            Id = ++s_NextId;
         }
 
-        public void Add<T>(string type, UnityAction<T> action)
-        {
-            if (!m_EventsData.ContainsKey(type))
-                m_EventsData.Add(type, new UnityEvent<T>());
-            ((UnityEvent<T>)m_EventsData[type]).AddListener(action);
+        public int Id { get; }
 
-            Debug.Log($"({id})[{type}({typeof(T).Name})] added;"); 
-        }
-        public bool Contains(string key)
-        {
-            return m_EventsData.ContainsKey(key);
-        }
-        public void Add(string type, UnityAction<object> action)
-        {
-            if (!m_EventsData.ContainsKey(type))
-                m_EventsData.Add(type, new UnityEvent<object>());
-            ((UnityEvent<object>)m_EventsData[type]).AddListener(action);
+        public bool Contains(string type) => m_Events.ContainsKey(type);
 
-            Debug.Log($"({id})[{type}({typeof(object).Name})] added;");
+        public void Add(string type, UnityAction action) => GetOrCreate<UnityEvent>(type).AddListener(action);
+
+        public void Add<T>(string type, UnityAction<T> action) => GetOrCreate<UnityEvent<T>>(type).AddListener(action);
+
+        public void Remove(string type, UnityAction action)
+        {
+            if (TryGet(type, out UnityEvent unityEvent))
+                unityEvent.RemoveListener(action);
         }
 
-        public void Invoke(string type)
+        public void Remove<T>(string type, UnityAction<T> action)
         {
-            Debug.Log($"({id})[{type}];");
-            if (!m_EventsData.ContainsKey(type)) return;
-            (m_EventsData[type] as UnityEvent)?.Invoke();
-
-            Debug.Log($"({id})[{type}]; success");
-        }
-
-        public void Invoke<T>(string type, T eventData)
-        {
-            Debug.Log($"({id})[{type}].Invoke<T>({eventData}); {m_EventsData.ContainsKey(type)}");
-            if (!m_EventsData.ContainsKey(type)) return;
-            (m_EventsData[type] as UnityEvent<T>)?.Invoke(eventData);
-
-            Debug.Log($"({id})[{type}].Invoke<T>({eventData}) success;");
-
+            if (TryGet(type, out UnityEvent<T> unityEvent))
+                unityEvent.RemoveListener(action);
         }
 
         public void RemoveAll(string type)
         {
-            if (m_EventsData.ContainsKey(type) && m_EventsData[type] != null)
-                m_EventsData[type].RemoveAllListeners();
-            else
-                Debug.LogWarning($"CAN'T REMOVE: [{type}=>{m_EventsData[type].GetType()}]");
+            if (m_Events.TryGetValue(type, out UnityEventBase unityEvent))
+                unityEvent.RemoveAllListeners();
         }
 
-        public void Remove(string type, UnityAction action)
+        public void Invoke(string type)
         {
-            if (m_EventsData.ContainsKey(type) && m_EventsData[type] is UnityEvent)
-                (m_EventsData[type] as UnityEvent).RemoveListener(action);
-            else
-                Debug.LogWarning($"CAN'T REMOVE: [{type}=>{m_EventsData[type].GetType()}]");
+            if (TryGet(type, out UnityEvent unityEvent))
+                unityEvent.Invoke();
         }
-        public void Remove<T>(string type, UnityAction<T> action)
+
+        public void Invoke<T>(string type, T data)
         {
-            if (m_EventsData.ContainsKey(type) && m_EventsData[type] is UnityEvent<T>)
-                (m_EventsData[type] as UnityEvent<T>).RemoveListener(action);
-            else
-                Debug.LogWarning($"CAN'T REMOVE: [{type}=>{m_EventsData[type].GetType()}]");
+            if (TryGet(type, out UnityEvent<T> unityEvent))
+                unityEvent.Invoke(data);
         }
 
         public void Dispose()
         {
-            foreach (string key in m_EventsData.Keys)
+            foreach (UnityEventBase unityEvent in m_Events.Values)
+                unityEvent.RemoveAllListeners();
+
+            m_Events.Clear();
+        }
+
+        private TEvent GetOrCreate<TEvent>(string type) where TEvent : UnityEventBase, new()
+        {
+            if (!m_Events.TryGetValue(type, out UnityEventBase unityEvent))
             {
-                RemoveAll(key);
-                m_EventsData[key] = null;
+                unityEvent = new TEvent();
+                m_Events.Add(type, unityEvent);
             }
-            m_EventsData.Clear();
-            m_EventsData = null;
+
+            if (unityEvent is TEvent typed)
+                return typed;
+
+            throw new InvalidOperationException(
+                $"Event '{type}' is already registered as {unityEvent.GetType().Name}, cannot subscribe as {typeof(TEvent).Name}.");
+        }
+
+        private bool TryGet<TEvent>(string type, out TEvent result) where TEvent : UnityEventBase
+        {
+            m_Events.TryGetValue(type, out UnityEventBase unityEvent);
+            result = unityEvent as TEvent;
+            return result != null;
         }
     }
 }

@@ -1,107 +1,154 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using StateEngine.Models;
+using UnityEngine;
+
 namespace StateEngine.Views
 {
-    using StateEngine.Model;
-    using System.Collections;
-    using System.Collections.Generic;
-    using UnityEngine;
-    [DefaultExecutionOrder(-801)]
+    /// <summary>
+    /// Stack-based screen navigation. Views are loaded from Resources by name and destroyed when closed.
+    /// Transitions are queued, so calls made during an animation run after it finishes.
+    /// </summary>
+    [DefaultExecutionOrder(-800)]
     public class Viewer : MonoBehaviour, IViewer
     {
-        public const string KEY = "viewer";
-        virtual protected void Awake()
-        {
-            StaticModel.Add(KEY, this);
-        }
-        virtual protected void OnDestroy()
-        {
-            StaticModel.Remove(KEY);
-        }
-        protected Stack<string> viewsStack = new Stack<string>();
-        protected Dictionary<string, IView> viewsMap = new Dictionary<string, IView>();
-        public IView CurrentView { get; protected set; }
-        public IView OverlayView { get; protected set; }
-        async virtual public void Push(string name, Dictionary<string, object> data, bool popAll)
-        {
-            if (popAll)
-                PopAll();
+        [SerializeField, Tooltip("Folder inside Resources that contains view prefabs.")]
+        private string m_ResourcesPath = "Views";
 
-            if (CurrentView != null && !CurrentView.IsOverlay)
-            {
-                await CurrentView.FocusOut();
-                Remove(CurrentView.name);
-            }
-            CurrentView = Add(name);
-            if (CurrentView.IsOverlay)
-            {
-                OverlayView = CurrentView;
-            }
-            viewsStack.Push(name);
-            await CurrentView.FocusIn();
-        }
-        async virtual public void Pop()
-        {
-            if (CurrentView != null && !CurrentView.IsOverlay)
-            {
+        private readonly Stack<string> m_History = new Stack<string>();
+        private readonly Dictionary<string, IView> m_OpenViews = new Dictionary<string, IView>();
+        private Task m_Transition = Task.CompletedTask;
 
-                await CurrentView.FocusOut();
-                Remove(CurrentView.name);
-                viewsStack.Pop();
-                CurrentView = null;
-            }
-            if (CurrentView == null && viewsStack.TryPeek(out string peek))
-            {
-                CurrentView = Add(peek);
-                await CurrentView.FocusIn();
-            }
-        }
-        virtual protected void Remove(string name)
+        public IView CurrentView =>
+            m_History.Count > 0 && m_OpenViews.TryGetValue(m_History.Peek(), out IView view) ? view : null;
+
+        protected virtual void Awake()
         {
-            if (viewsMap.ContainsKey(name))
-            {
-                viewsMap[name].Dispose();
-                viewsMap.Remove(name);
-            }
+            ServiceRegistry.Register<IViewer>(this);
         }
-        virtual protected IView Add(string name)
+
+        protected virtual void OnDestroy()
         {
-            IView view = null;
-            if (!viewsMap.ContainsKey(name))
+            ServiceRegistry.Unregister<IViewer>(this);
+        }
+
+        public Task Push(string viewName, bool clearHistory = true) => Enqueue(() => PushInternal(viewName, clearHistory));
+
+        public Task Pop() => Enqueue(PopInternal);
+
+        public Task PopAll() => Enqueue(PopAllInternal);
+
+        protected virtual IView CreateView(string viewName)
+        {
+            var prefab = Resources.Load<GameObject>($"{m_ResourcesPath}/{viewName}");
+            if (prefab == null)
+                throw new ArgumentException($"View prefab '{m_ResourcesPath}/{viewName}' was not found in Resources.", nameof(viewName));
+
+            GameObject instance = Instantiate(prefab, transform);
+            instance.name = viewName;
+
+            if (!instance.TryGetComponent(out IView view))
             {
-                view = LoadView(name);
-                viewsMap.Add(name, view);
+                Destroy(instance);
+                throw new InvalidOperationException($"Prefab '{viewName}' has no component implementing {nameof(IView)}.");
             }
-            else
-            {
-                view = viewsMap[name];
-            }
+
             return view;
         }
-        virtual public void Push(string name, bool popAll)
+
+        private async Task PushInternal(string viewName, bool clearHistory)
         {
-            Push(name, null, popAll);
+            if (!clearHistory && m_History.Count > 0 && m_History.Peek() == viewName)
+                return;
+
+            IView next = GetOrCreate(viewName);
+
+            if (clearHistory)
+                await CloseAllExcept(viewName);
+            else if (!next.IsOverlay && m_History.Count > 0)
+                await Close(m_History.Peek());
+
+            if (clearHistory)
+                m_History.Clear();
+
+            m_History.Push(viewName);
+            await next.FocusInAsync(destroyCancellationToken);
         }
-        virtual public void Push(string name)
+
+        private async Task PopInternal()
         {
-            Push(name, null, true);
-        }
-        async virtual public void PopAll()
-        {
-            if (CurrentView != null && !CurrentView.IsOverlay)
+            if (m_History.Count == 0)
+                return;
+
+            await Close(m_History.Pop());
+
+            if (m_History.Count > 0)
             {
-                await CurrentView.FocusOut();
-                Remove(CurrentView.name);
-                viewsStack.Clear();
+                IView previous = GetOrCreate(m_History.Peek());
+                if (!previous.IsFocused)
+                    await previous.FocusInAsync(destroyCancellationToken);
             }
         }
 
-        virtual protected IView LoadView(string name)
+        private async Task PopAllInternal()
         {
-            Debug.Log(name);
-            GameObject viewGameObject = Instantiate(Resources.Load<GameObject>($"Views/{name}"), transform);
-            viewGameObject.name = viewGameObject.name.Replace("(Clone)", "");
-            IView view = viewGameObject.GetComponent<IView>();
-            
+            await CloseAllExcept(null);
+            m_History.Clear();
+        }
+
+        private IView GetOrCreate(string viewName)
+        {
+            if (!m_OpenViews.TryGetValue(viewName, out IView view))
+            {
+                view = CreateView(viewName);
+                m_OpenViews.Add(viewName, view);
+            }
+
             return view;
+        }
+
+        private async Task Close(string viewName)
+        {
+            if (!m_OpenViews.TryGetValue(viewName, out IView view))
+                return;
+
+            m_OpenViews.Remove(viewName);
+            await view.FocusOutAsync(destroyCancellationToken);
+            view.Dispose();
+        }
+
+        private async Task CloseAllExcept(string keptViewName)
+        {
+            var viewNames = new List<string>(m_OpenViews.Keys);
+            foreach (string viewName in viewNames)
+            {
+                if (viewName != keptViewName)
+                    await Close(viewName);
+            }
+        }
+
+        private Task Enqueue(Func<Task> transition)
+        {
+            m_Transition = RunAfter(m_Transition, transition);
+            return m_Transition;
+        }
+
+        private static async Task RunAfter(Task previous, Func<Task> transition)
+        {
+            await previous;
+
+            try
+            {
+                await transition();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
         }
     }
 }

@@ -1,14 +1,13 @@
-﻿namespace StateEngine.Example
+using StateEngine.Behaviours;
+
+namespace StateEngine.Example
 {
-    using StateEngine.Behaviours;
-
-    public class AdditionalStater : StaterBehaviour
+    public sealed class AdditionalStater : StaterBehaviour
     {
-        public override void Initialize()
+        protected override void OnInitialize()
         {
-            stater.Add(new AdditionalStaterState());
-            stater.Start("AdditionalStaterState");
+            Stater.Add(new AdditionalStaterState());
+            Stater.Change(nameof(AdditionalStaterState));
         }
-
     }
 }

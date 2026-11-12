@@ -1,105 +1,65 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Camera))]
-public class CameraAnchor : MonoBehaviour
+namespace StateEngine.Components.UI
 {
-    public Camera targetCamera;
-    [Tooltip("Normalized minimum anchors (lower-left corner)")]
-    public Vector2 anchorMin = new Vector2(0.5f, 0.5f);
-    [Tooltip("Normalized maximum anchors (upper-right corner)")]
-    public Vector2 anchorMax = new Vector2(0.5f, 0.5f);
-    [Tooltip("Pixel offset from minimum anchors")]
-    public Vector2 offsetMin = Vector2.zero;
-    [Tooltip("Pixel offset from maximum anchors")]
-    public Vector2 offsetMax = Vector2.zero;
-
-    private Vector2 cachedScreenSize;
-    private Vector2 cachedAnchorMin;
-    private Vector2 cachedAnchorMax;
-    private Vector2 cachedOffsetMin;
-    private Vector2 cachedOffsetMax;
-
-    private void Awake()
+    /// <summary>
+    /// Fits the camera viewport into an anchored rect, the same way a RectTransform fits its parent.
+    /// </summary>
+    [ExecuteAlways]
+    [RequireComponent(typeof(Camera))]
+    public sealed class CameraAnchor : MonoBehaviour
     {
-        if (targetCamera == null)
-            targetCamera = GetComponent<Camera>();
+        private const float k_MinViewportSize = 0.0001f;
 
-        UpdateViewport(true);
+        [SerializeField] private Vector2 m_AnchorMin = new Vector2(0f, 0f);
+        [SerializeField] private Vector2 m_AnchorMax = new Vector2(1f, 1f);
+
+        [SerializeField, Tooltip("Offset of the lower-left corner in pixels.")]
+        private Vector2 m_OffsetMin;
+
+        [SerializeField, Tooltip("Offset of the upper-right corner in pixels, positive values shrink the viewport.")]
+        private Vector2 m_OffsetMax;
+
+        private Camera m_Camera;
+        private Vector2Int m_LastScreenSize;
+
+        private void OnEnable()
+        {
+            m_Camera = GetComponent<Camera>();
+            Apply();
+        }
+
+        private void Update()
+        {
+            var screenSize = new Vector2Int(Screen.width, Screen.height);
+            if (screenSize != m_LastScreenSize)
+                Apply();
+        }
+
+        private void OnValidate()
+        {
+            if (m_Camera != null)
+                Apply();
+        }
+
+        [ContextMenu("Apply")]
+        public void Apply()
+        {
+            m_LastScreenSize = new Vector2Int(Screen.width, Screen.height);
+            if (m_LastScreenSize.x == 0 || m_LastScreenSize.y == 0)
+                return;
+
+            Vector2 screen = m_LastScreenSize;
+            Vector2 min = Clamp01(m_AnchorMin + m_OffsetMin / screen);
+            Vector2 max = Clamp01(m_AnchorMax - m_OffsetMax / screen);
+
+            m_Camera.rect = new Rect(
+                min.x,
+                min.y,
+                Mathf.Max(k_MinViewportSize, max.x - min.x),
+                Mathf.Max(k_MinViewportSize, max.y - min.y));
+        }
+
+        private static Vector2 Clamp01(Vector2 value) => new Vector2(Mathf.Clamp01(value.x), Mathf.Clamp01(value.y));
     }
-
-    private void Update()
-    {
-        UpdateViewport();
-    }
-
-    private void UpdateViewport(bool forceUpdate = false)
-    {
-        if (targetCamera == null)
-            return;
-
-        // Защита от нулевого размера экрана
-        if (Screen.width == 0 || Screen.height == 0)
-            return;
-
-        bool screenSizeChanged =
-            Screen.width != cachedScreenSize.x ||
-            Screen.height != cachedScreenSize.y;
-
-        bool settingsChanged =
-            !Mathf.Approximately(anchorMin.x, cachedAnchorMin.x) ||
-            !Mathf.Approximately(anchorMin.y, cachedAnchorMin.y) ||
-            !Mathf.Approximately(anchorMax.x, cachedAnchorMax.x) ||
-            !Mathf.Approximately(anchorMax.y, cachedAnchorMax.y) ||
-            offsetMin != cachedOffsetMin ||
-            offsetMax != cachedOffsetMax;
-
-        if (!forceUpdate && !screenSizeChanged && !settingsChanged)
-            return;
-
-        // Обновляем кэш
-        cachedScreenSize = new Vector2(Screen.width, Screen.height);
-        cachedAnchorMin = anchorMin;
-        cachedAnchorMax = anchorMax;
-        cachedOffsetMin = offsetMin;
-        cachedOffsetMax = offsetMax;
-
-        // Конвертируем смещения с защитой от деления на ноль
-        Vector2 offsetMinNorm = new Vector2(
-            offsetMin.x / cachedScreenSize.x,
-            offsetMin.y / cachedScreenSize.y
-        );
-
-        Vector2 offsetMaxNorm = new Vector2(
-            offsetMax.x / cachedScreenSize.x,
-            offsetMax.y / cachedScreenSize.y
-        );
-
-        // Рассчитываем границы с дополнительными проверками
-        float xMin = Mathf.Clamp01(anchorMin.x + offsetMinNorm.x);
-        float yMin = Mathf.Clamp01(anchorMin.y + offsetMinNorm.y);
-        float xMax = Mathf.Clamp01(anchorMax.x - offsetMaxNorm.x);
-        float yMax = Mathf.Clamp01(anchorMax.y - offsetMaxNorm.y);
-
-        // Корректируем границы
-        if (xMin > xMax) xMax = xMin + 0.0001f;
-        if (yMin > yMax) yMax = yMin + 0.0001f;
-
-        // Применяем изменения
-        targetCamera.rect = new Rect(
-            xMin,
-            yMin,
-            Mathf.Max(0.0001f, xMax - xMin),
-            Mathf.Max(0.0001f, yMax - yMin)
-        );
-    }
-
-#if UNITY_EDITOR
-    private void OnValidate()
-    {
-        if (targetCamera == null)
-            targetCamera = GetComponent<Camera>();
-
-        UpdateViewport(true);
-    }
-#endif
 }

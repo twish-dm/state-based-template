@@ -1,71 +1,79 @@
+using System;
+using System.Collections.Generic;
+using StateEngine.Models;
+using StateEngine.Views;
+
 namespace StateEngine.States
 {
-    using StateEngine.Model;
-    using StateEngine.Events;
-    using System;
-    using System.Collections.Generic;
-    using UnityEngine.Events;
-    using StateEngine.Views;
-
-    public class Stater : IStater
+    public sealed class Stater : IStater, IDisposable
     {
-        protected IModel model, primaryModel;
+        private readonly Dictionary<string, IState> m_States = new Dictionary<string, IState>();
+        private readonly IModel m_Model;
+        private readonly IModel m_PrimaryModel;
+
         public Stater(IModel model, IModel primaryModel)
         {
-            this.model = model;
-            this.primaryModel = primaryModel;
+            m_Model = model ?? throw new ArgumentNullException(nameof(model));
+            m_PrimaryModel = primaryModel ?? throw new ArgumentNullException(nameof(primaryModel));
         }
-        private Dictionary<string, int> m_StateIndexMap = new Dictionary<string, int>();
-        private List<IState> m_States = new List<IState>();
-        virtual public IState Current { get; protected set; }
 
-        virtual public void Add(IState state)
+        public IState Current { get; private set; }
+
+        public void Add(IState state)
         {
-            if (m_StateIndexMap.ContainsKey(state.Name))
-                throw new Exception($"State '{state.Name}({state.GetType()})' already exist");
-            state.Stater = this;
-            state.Model = model;
-            state.PrimaryModel = primaryModel;
-            state.Viewer = StaticModel.Get<IViewer>(Viewer.KEY);
-            m_StateIndexMap.Add(state.Name, m_States.Count);
-            m_States.Add(state);
-            state.Initialize();
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+
+            if (m_States.ContainsKey(state.Name))
+                throw new InvalidOperationException($"State '{state.Name}' is already registered.");
+
+            m_States.Add(state.Name, state);
+
+            ServiceRegistry.TryGet(out IViewer viewer);
+            state.Initialize(new StateContext(this, m_Model, m_PrimaryModel, viewer));
         }
-        virtual public void Remove(IState state)
+
+        public void Remove(string stateName)
         {
-            if (!m_StateIndexMap.ContainsKey(state.Name))
-                throw new Exception($"State '{state.Name}({state.GetType()})' not found");
-            m_StateIndexMap.Remove(state.Name);
-            m_States.Remove(state);
-        }
-        virtual public void Remove(string stateName)
-        {
-            Remove(m_States[m_StateIndexMap[stateName]]);
-        }
-        virtual public void Start(string stateName)
-        {
-            Change(stateName);
-        }
-        virtual public void Change(string stateName)
-        {
-            if (Current != null)
+            if (!m_States.TryGetValue(stateName, out IState state))
+                return;
+
+            if (ReferenceEquals(state, Current))
+            {
                 Current.Exit();
+                Current = null;
+            }
 
-            if (!m_States[m_StateIndexMap[stateName]].IsInitialized)
-                m_States[m_StateIndexMap[stateName]].Initialize();
+            m_States.Remove(stateName);
+            state.Dispose();
+        }
 
-            Current = m_States[m_StateIndexMap[stateName]];
+        public void Change(string stateName)
+        {
+            if (!m_States.TryGetValue(stateName, out IState next))
+                throw new KeyNotFoundException($"State '{stateName}' is not registered.");
+
+            if (ReferenceEquals(next, Current))
+                return;
+
+            Current?.Exit();
+            Current = next;
             Current.Enter();
         }
 
-        virtual public void Invoke(string type)
-        {
-            Current?.StateEventer.Invoke(type);
-        }
+        public void Invoke(string type) => Current?.Events.Invoke(type);
 
-        virtual public void Invoke<T>(string type, T eventData)
+        public void Invoke<T>(string type, T data) => Current?.Events.Invoke(type, data);
+
+        public void Dispose()
         {
-            Current?.StateEventer.Invoke(type, eventData);
+            Current?.Exit();
+            Current = null;
+
+            foreach (IState state in m_States.Values)
+                state.Dispose();
+
+            m_States.Clear();
         }
     }
 }

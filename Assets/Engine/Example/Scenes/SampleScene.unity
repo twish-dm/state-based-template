@@ -169,9 +169,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5765a692791cbff4186a088655db2ea9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GetFromEngine: 1
-  <Priority>k__BackingField: 1
-  stepsField: CubeSteps
+  m_UseEngineContext: 1
+  m_Priority: 1
+  m_StepsKey: CubeSteps
 --- !u!23 &58127367
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -292,10 +292,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8bc28340c8a8f547aa40623eb6c868a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GetFromEngine: 0
+  m_UseEngineContext: 0
   m_IsLoop: 1
   m_NavigationType: 0
-  stepsField: CubeSteps
+  m_StepsKey: CubeSteps
   m_IsPaused: 0
 --- !u!23 &390704521
 MeshRenderer:
@@ -442,9 +442,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5765a692791cbff4186a088655db2ea9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GetFromEngine: 1
-  <Priority>k__BackingField: 0
-  stepsField: CubeSteps
+  m_UseEngineContext: 1
+  m_Priority: 0
+  m_StepsKey: CubeSteps
 --- !u!23 &641020997
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -874,7 +874,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79481a11e68d9a3429dfeb75d25fb0be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GetFromEngine: 0
+  m_UseEngineContext: 0
 --- !u!1 &843556343
 GameObject:
   m_ObjectHideFlags: 0
@@ -923,10 +923,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8bc28340c8a8f547aa40623eb6c868a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GetFromEngine: 0
+  m_UseEngineContext: 0
   m_IsLoop: 1
   m_NavigationType: 1
-  stepsField: CubeSteps
+  m_StepsKey: CubeSteps
   m_IsPaused: 0
 --- !u!23 &843556348
 MeshRenderer:
@@ -1188,8 +1188,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 760153df768ec5c4c939cb1095b50f24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GetFromEngine: 0
-  modelField: global
+  m_UseEngineContext: 0
+  m_Key: global
 --- !u!1 &930812233
 GameObject:
   m_ObjectHideFlags: 0
@@ -1338,8 +1338,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 760153df768ec5c4c939cb1095b50f24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GetFromEngine: 0
-  modelField: local
+  m_UseEngineContext: 0
+  m_Key: local
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0
@@ -1470,9 +1470,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5765a692791cbff4186a088655db2ea9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GetFromEngine: 0
-  <Priority>k__BackingField: 3
-  stepsField: CubeSteps
+  m_UseEngineContext: 0
+  m_Priority: 3
+  m_StepsKey: CubeSteps
 --- !u!23 &978803976
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1914,9 +1914,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5765a692791cbff4186a088655db2ea9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GetFromEngine: 1
-  <Priority>k__BackingField: 2
-  stepsField: CubeSteps
+  m_UseEngineContext: 1
+  m_Priority: 2
+  m_StepsKey: CubeSteps
 --- !u!23 &1114801356
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -2164,8 +2164,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 095ec44aa5bbf624e8b8faa82c8c3b5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GetFromEngine: 0
-  modelField: LocalButton
+  m_UseEngineContext: 0
+  m_Key: LocalButton
 --- !u!114 &1916704957
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2301,8 +2301,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 095ec44aa5bbf624e8b8faa82c8c3b5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GetFromEngine: 0
-  modelField: GlobalButton
+  m_UseEngineContext: 0
+  m_Key: GlobalButton
 --- !u!114 &1947045848
 MonoBehaviour:
   m_ObjectHideFlags: 0

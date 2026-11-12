@@ -1,14 +1,20 @@
-﻿using System;
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace StateEngine.Views
 {
-    public interface IView:IDisposable
+    public interface IView : IDisposable
     {
-        public string name { get; }
-        bool IsOverlay { get; set; }
+        /// <summary>
+        /// Overlay views are shown on top of the current view without closing it.
+        /// </summary>
+        bool IsOverlay { get; }
+
         bool IsFocused { get; }
-        Task FocusIn();
-        Task FocusOut();
+
+        Task FocusInAsync(CancellationToken cancellationToken = default);
+
+        Task FocusOutAsync(CancellationToken cancellationToken = default);
     }
 }

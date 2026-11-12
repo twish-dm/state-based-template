@@ -1,46 +1,74 @@
-﻿using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
-
-using DG.Tweening;
-
 using StateEngine.Behaviours;
-
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace StateEngine.Views
 {
+    [RequireComponent(typeof(CanvasGroup))]
     public class ViewBase : DynamicBehaviour, IView
     {
-        [field: SerializeField] virtual public bool IsOverlay { get; set; }
-        protected CanvasGroup canvasGroup;
-        virtual public bool IsFocused { get; protected set; }
+        [SerializeField] private bool m_IsOverlay;
+        [SerializeField, Min(0f)] private float m_FadeDuration = 0.2f;
 
-        virtual protected void OnEnable()
+        private CanvasGroup m_CanvasGroup;
+
+        public bool IsOverlay => m_IsOverlay;
+
+        public bool IsFocused { get; private set; }
+
+        protected override void OnInitialize()
         {
-            canvasGroup = GetComponent<CanvasGroup>();
-            canvasGroup.alpha = 0;
+            m_CanvasGroup = GetComponent<CanvasGroup>();
+            SetVisible(false, 0f);
         }
-        virtual protected void OnDisable()
-        {
-        }
-        async virtual public Task FocusIn()
+
+        public virtual async Task FocusInAsync(CancellationToken cancellationToken = default)
         {
             IsFocused = true;
             gameObject.SetActive(true);
-
             transform.SetAsLastSibling();
-            await canvasGroup.DOFade(1f, 0.2f).AsyncWaitForCompletion();
+
+            await FadeAsync(1f, cancellationToken);
         }
-        async virtual public Task FocusOut()
+
+        public virtual async Task FocusOutAsync(CancellationToken cancellationToken = default)
         {
             IsFocused = false;
-            await canvasGroup.DOFade(0f, 0.2f).AsyncWaitForCompletion();
-            await Task.CompletedTask;
+
+            await FadeAsync(0f, cancellationToken);
         }
 
-        public override void Initialize()
+        private async Task FadeAsync(float targetAlpha, CancellationToken cancellationToken)
         {
+            using (var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, destroyCancellationToken))
+            {
+                CancellationToken token = linked.Token;
+                float startAlpha = m_CanvasGroup.alpha;
+
+                SetInteractable(false);
+
+                for (float elapsed = 0f; elapsed < m_FadeDuration; elapsed += Time.unscaledDeltaTime)
+                {
+                    m_CanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed / m_FadeDuration);
+                    await Task.Yield();
+                    token.ThrowIfCancellationRequested();
+                }
+
+                SetVisible(targetAlpha > 0f, targetAlpha);
+            }
+        }
+
+        private void SetVisible(bool isVisible, float alpha)
+        {
+            m_CanvasGroup.alpha = alpha;
+            SetInteractable(isVisible);
+        }
+
+        private void SetInteractable(bool isInteractable)
+        {
+            m_CanvasGroup.interactable = isInteractable;
+            m_CanvasGroup.blocksRaycasts = isInteractable;
         }
     }
 }

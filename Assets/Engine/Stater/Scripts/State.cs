@@ -1,53 +1,63 @@
-﻿namespace StateEngine.States
+using StateEngine.Events;
+using StateEngine.Models;
+using StateEngine.Views;
+
+namespace StateEngine.States
 {
-    using StateEngine.Model;
-    using StateEngine.Events;
-    using UnityEngine.Events;
-    using System.Collections.Generic;
-    using UnityEngine;
-    using StateEngine.Views;
-
-    abstract public class State : IState
+    public abstract class State : IState
     {
+        private Eventer m_Events;
 
-        virtual public IModel Model { get; set; }
-        private Dictionary<string, UnityEventBase> m_EventsData;
-        private Eventer m_Eventer;
-        virtual public IEventer StateEventer { get => m_Eventer; }
-        virtual public IStater Stater { get; set; }
+        public virtual string Name => GetType().Name;
 
-        virtual public string Name => GetType().Name;
+        public bool IsInitialized { get; private set; }
 
-        virtual public bool IsInitialized { get; private set; }
-        virtual public IViewer Viewer { get; set; }
-        public IModel PrimaryModel { get; set; }
+        public IEventer Events => m_Events;
 
-        virtual public void Dispose()
+        protected IStater Stater { get; private set; }
+
+        protected IModel Model { get; private set; }
+
+        protected IModel PrimaryModel { get; private set; }
+
+        protected IViewer Viewer { get; private set; }
+
+        public void Initialize(StateContext context)
         {
-            StateEventer.Dispose();
-        }
+            if (IsInitialized)
+                return;
 
-        abstract public void Enter();
-
-        abstract public void Exit();
-
-        virtual public void Initialize()
-        {
-            if (IsInitialized) return;
-            Debug.Log($"State[{Name}] initialized");
+            Stater = context.Stater;
+            Model = context.Model;
+            PrimaryModel = context.PrimaryModel;
+            Viewer = context.Viewer;
+            m_Events = new Eventer();
             IsInitialized = true;
-            m_EventsData = new Dictionary<string, UnityEventBase>();
-            m_Eventer = new Eventer(m_EventsData);
+
+            OnInitialize();
         }
 
-        public void Send(string type)
+        public virtual void Enter()
         {
-            Model.Eventer.Invoke(type);
         }
 
-        public void Send<T>(string type, T eventData) 
+        public virtual void Exit()
         {
-            Model.Eventer.Invoke(type, eventData);
         }
+
+        public virtual void Dispose()
+        {
+            m_Events?.Dispose();
+        }
+
+        /// <summary>
+        /// Subscribe to <see cref="Events"/> here. Subscriptions live for the whole lifetime of the state,
+        /// the stater only routes events to the active one.
+        /// </summary>
+        protected abstract void OnInitialize();
+
+        protected void Send(string type) => Model.Eventer.Invoke(type);
+
+        protected void Send<T>(string type, T data) => Model.Eventer.Invoke(type, data);
     }
 }

@@ -1,82 +1,75 @@
-﻿
+using StateEngine.Events;
+using StateEngine.Models;
+using StateEngine.States;
+using UnityEngine;
+
 namespace StateEngine.Behaviours
 {
-    using StateEngine.Events;
-    using StateEngine.Model;
-    using StateEngine.States;
-
-    using System;
-    using System.Collections.Generic;
-
-    using UnityEngine;
-    using UnityEngine.Events;
-
-    abstract public class StaterBehaviour : MonoBehaviour, IStaterBehaviour, IInitialize
+    /// <summary>
+    /// Local state machine scope. Child <see cref="DynamicBehaviour"/>s bind to it instead of the engine.
+    /// </summary>
+    public abstract class StaterBehaviour : MonoBehaviour, IStateContext
     {
-        [SerializeField] private bool m_GetFromEngine;
+        [SerializeField, Tooltip("Share the engine model instead of creating an isolated one.")]
+        private bool m_UseEngineContext;
 
-        private Dictionary<string, UnityEventBase> m_EventsData;
-        protected IModel model { get; set; }
-        protected IEventer eventer { get; set; }
-        protected Stater stater { get; set; }
-        protected IEngine primaryStater { get; set; }
-        public IEventer Eventer => eventer;
-        public IStater Stater => stater;
-        public IModel Model => model;
-        public IEngine PrimaryStater => primaryStater;
-        public IStaterBehaviour ParentStaterBehaviour { get; protected set; }
+        private IModel m_Model;
+        private Stater m_Stater;
+        private bool m_OwnsModel;
+        private bool m_IsInitialized;
 
-        virtual protected void Awake()
+        public IModel Model
         {
-            if (!IsInitialized)
+            get
             {
-                if (primaryStater == null)
-                    primaryStater = StaticModel.Get<IEngine>(Engine.KEY);
-                ParentStaterBehaviour = transform.parent.GetComponentInParent<StaterBehaviour>();
-                Debug.Log($"{name} => {ParentStaterBehaviour}");
-                m_EventsData = null;
-
-                if (m_GetFromEngine)
-                {
-                    eventer = primaryStater.Eventer;
-                    model = primaryStater.Model;
-                }
-                else
-                {
-                    m_EventsData = new Dictionary<string, UnityEventBase>();
-                    eventer = new Eventer(m_EventsData);
-                    model = new DynamicModel(eventer);
-                }
-                stater = new Stater(model, primaryStater.PrimaryModel);
-
-                Debug.Log($"StaterBehaviour[{name}] Initialize");
-                IsInitialized = true;
-
-                Initialize();
+                EnsureInitialized();
+                return m_Model;
             }
         }
 
-        virtual public void Send(string type)
-        {
-            stater.Invoke(type);
-        }
-        virtual public void Send<T>(string type, T eventData)
-        {
-            stater.Invoke(type, eventData);
-        }
+        public IEventer Eventer => Model.Eventer;
 
-        virtual public bool IsDestroyed { get; protected set; }
-
-        public bool IsInitialized { get; protected set; }
-
-        virtual public void Dispose()
+        public IStater Stater
         {
-            if (IsDestroyed) return;
-            gameObject.SetActive(false);
-            Destroy(gameObject);
-            IsDestroyed = true;
+            get
+            {
+                EnsureInitialized();
+                return m_Stater;
+            }
         }
 
-        abstract public void Initialize();
+        protected virtual void Awake() => EnsureInitialized();
+
+        protected virtual void OnDestroy()
+        {
+            if (!m_IsInitialized)
+                return;
+
+            m_Stater.Dispose();
+
+            if (m_OwnsModel)
+                m_Model.Eventer.Dispose();
+        }
+
+        /// <summary>
+        /// Register states and start the initial one here.
+        /// </summary>
+        protected abstract void OnInitialize();
+
+        // Children may resolve this scope from their own Awake before ours has run.
+        private void EnsureInitialized()
+        {
+            if (m_IsInitialized)
+                return;
+
+            m_IsInitialized = true;
+
+            IEngine engine = ServiceRegistry.Get<IEngine>();
+            m_OwnsModel = !m_UseEngineContext;
+            m_Model = m_OwnsModel ? new DynamicModel(new Eventer()) : engine.Model;
+            m_Stater = new Stater(m_Model, engine.PrimaryModel);
+
+            OnInitialize();
+        }
     }
 }

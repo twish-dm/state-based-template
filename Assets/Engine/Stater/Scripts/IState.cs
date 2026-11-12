@@ -1,20 +1,23 @@
+using System;
+using StateEngine.Events;
+
 namespace StateEngine.States
 {
-    using StateEngine.Model;
-    using StateEngine.Events;
-    using StateEngine.Views;
-
-    public interface IState : IInitialize
+    public interface IState : IDisposable
     {
-        IModel Model {get; set;}
-        IModel PrimaryModel { get; set; }
-        IEventer StateEventer { get; }
-        IStater Stater { get; set; }
-        IViewer Viewer { get; set; }
         string Name { get; }
+
+        bool IsInitialized { get; }
+
+        /// <summary>
+        /// Events routed to this state while it is active.
+        /// </summary>
+        IEventer Events { get; }
+
+        void Initialize(StateContext context);
+
         void Enter();
+
         void Exit();
-        void Send(string type);
-        void Send<T>(string type, T eventData);
     }
 }

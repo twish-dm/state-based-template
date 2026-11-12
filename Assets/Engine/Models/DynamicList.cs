@@ -1,73 +1,88 @@
-﻿namespace StateEngine.Model
+using System.Collections;
+using System.Collections.Generic;
+using StateEngine.Events;
+
+namespace StateEngine.Models
 {
-    using StateEngine.Events;
-
-    using System.Collections.Generic;
-
-    public class DynamicList<T> : List<T>, ICollection<T>
+    /// <summary>
+    /// List stored in a model that raises a <see cref="ListEvent{T}"/> under its model key on every change.
+    /// </summary>
+    public sealed class DynamicList<T> : IList<T>, IReadOnlyList<T>
     {
-        public DynamicList(string field, IEventer eventer) : base()
-        {
-            this.field = field;
-            this.eventer = eventer;
-        }
-        public DynamicList(string field, IEventer eventer, ICollection<T> list) : base(list)
-        {
-            this.field = field;
-            this.eventer = eventer;
-        }
-        protected IEventer eventer;
-        protected string field;
+        private readonly List<T> m_Items;
+        private readonly IEventer m_Eventer;
+        private readonly string m_Key;
 
-        new virtual public T this[int key]
+        public DynamicList(string key, IEventer eventer, IEnumerable<T> items = null)
         {
-            get => base[key];
+            m_Key = key;
+            m_Eventer = eventer;
+            m_Items = items != null ? new List<T>(items) : new List<T>();
+        }
+
+        public int Count => m_Items.Count;
+
+        bool ICollection<T>.IsReadOnly => false;
+
+        public T this[int index]
+        {
+            get => m_Items[index];
             set
             {
-                base[key] = value;
-                eventer.Invoke<ListEvent<T>>(field, new(ListEvent.TYPE_DATA_ITEM_CHANGE, this, base[key]));
+                m_Items[index] = value;
+                Notify(ListChangeType.Replaced, value);
             }
         }
 
-        new virtual public void Add(T item)
+        public void Add(T item)
         {
-            base.Add(item);
-            eventer.Invoke<ListEvent<T>>(field, new(ListEvent.TYPE_DATA_ITEM_NEW, this, item));
+            m_Items.Add(item);
+            Notify(ListChangeType.Added, item);
         }
 
-        new virtual public void Clear()
+        public void Insert(int index, T item)
         {
-            base.Clear();
-            eventer.Invoke<ListEvent<T>>(field, new(ListEvent.TYPE_DATA_CLEAR, this));
-        }
-        new virtual public bool Remove(T item)
-        {
-            bool result = base.Remove(item);
-            eventer.Invoke<ListEvent<T>>(field, new(ListEvent.TYPE_DATA_ITEM_REMOVE, this, item));
-            return result;
-        }
-    }
-    public class ListEvent : ModelEvent
-    {
-        public const int TYPE_DATA_ITEM_CHANGE = 3;
-        public const int TYPE_DATA_ITEM_NEW = 4;
-        public const int TYPE_DATA_ITEM_REMOVE = 5;
-        public const int TYPE_DATA_CLEAR = 5;
-        public ListEvent(int type, object data) : base(type, data) { }
-    }
-    public class ListEvent<T> : ListEvent
-    {
-
-        public ListEvent(int type, ICollection<T> list, T modifiedItem) : base(type, list)
-        {
-            ModifiedItem = modifiedItem;
-        }
-        public ListEvent(int type, ICollection<T> list) : base(type, list)
-        {
-
+            m_Items.Insert(index, item);
+            Notify(ListChangeType.Added, item);
         }
 
-        public DynamicList<T> List => GetData<DynamicList<T>>();
-        public T ModifiedItem { get; }
+        public bool Remove(T item)
+        {
+            if (!m_Items.Remove(item))
+                return false;
+
+            Notify(ListChangeType.Removed, item);
+            return true;
+        }
+
+        public void RemoveAt(int index)
+        {
+            T item = m_Items[index];
+            m_Items.RemoveAt(index);
+            Notify(ListChangeType.Removed, item);
+        }
+
+        public void Clear()
+        {
+            m_Items.Clear();
+            Notify(ListChangeType.Cleared);
+        }
+
+        public bool Contains(T item) => m_Items.Contains(item);
+
+        public int IndexOf(T item) => m_Items.IndexOf(item);
+
+        public void CopyTo(T[] array, int arrayIndex) => m_Items.CopyTo(array, arrayIndex);
+
+        public List<T>.Enumerator GetEnumerator() => m_Items.GetEnumerator();
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        private void Notify(ListChangeType type, T item = default)
+        {
+            m_Eventer.Invoke(m_Key, new ListEvent<T>(type, this, item));
+        }
     }
 }

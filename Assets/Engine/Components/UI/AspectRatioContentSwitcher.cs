@@ -1,70 +1,51 @@
-﻿using System.Collections;
-
 using UnityEngine;
 
-namespace Engine.Components.UI
+namespace StateEngine.Components.UI
 {
-    using UnityEngine;
-
-    [RequireComponent(typeof(RectTransform)),ExecuteAlways]
-    public class AspectRatioContentSwitcher : MonoBehaviour
+    /// <summary>
+    /// Switches between landscape and portrait content depending on the aspect ratio of this rect.
+    /// </summary>
+    [ExecuteAlways]
+    [RequireComponent(typeof(RectTransform))]
+    public sealed class AspectRatioContentSwitcher : MonoBehaviour
     {
-        [SerializeField, Range(0, 2f)] private float m_AspectRatio = 1f;
-        [Header("Content References")]
-        [Tooltip("Content to show in vertical orientations (height > width)")]
-        [SerializeField] protected GameObject verticalContent;
+        [SerializeField, Range(0.1f, 3f), Tooltip("Width / height ratio above which the horizontal content is shown.")]
+        private float m_Threshold = 1f;
 
-        [Tooltip("Content to show in horizontal orientations (width > height)")]
-        [SerializeField] protected GameObject horizontalContent;
+        [SerializeField, Tooltip("Shown when width / height is at or below the threshold.")]
+        private GameObject m_VerticalContent;
 
-        private RectTransform _rectTransform;
+        [SerializeField, Tooltip("Shown when width / height is above the threshold.")]
+        private GameObject m_HorizontalContent;
+
+        private RectTransform m_RectTransform;
 
         private void Awake()
         {
-            _rectTransform = GetComponent<RectTransform>();
+            m_RectTransform = (RectTransform)transform;
         }
 
-        private void Start()
+        private void OnEnable() => Refresh();
+
+        private void OnRectTransformDimensionsChange() => Refresh();
+
+        [ContextMenu("Refresh")]
+        public void Refresh()
         {
-            CheckAspectRatio();
-        }
+            if (m_RectTransform == null)
+                return;
 
-        private void OnRectTransformDimensionsChange()
-        {
-            CheckAspectRatio();
-        }
+            Rect rect = m_RectTransform.rect;
+            if (rect.height <= 0f)
+                return;
 
-        private void CheckAspectRatio()
-        {
-            if (_rectTransform == null) return;
+            bool isHorizontal = rect.width / rect.height > m_Threshold;
 
-            float width = _rectTransform.rect.width;
-            float height = _rectTransform.rect.height;
+            if (m_HorizontalContent != null)
+                m_HorizontalContent.SetActive(isHorizontal);
 
-            // Handle cases with zero size to prevent division by zero
-            if (Mathf.Approximately(height, 0)) return;
-
-            float aspectRatio = width / height;
-
-            bool isHorizontal = aspectRatio > m_AspectRatio;
-
-            SetContentActiveState(isHorizontal);
-        }
-
-        private void SetContentActiveState(bool isHorizontal)
-        {
-            if (horizontalContent != null)
-                horizontalContent.SetActive(isHorizontal);
-
-            if (verticalContent != null)
-                verticalContent.SetActive(!isHorizontal);
-        }
-
-        // Для отладки/ручного обновления в редакторе
-        [ContextMenu("Refresh Aspect Ratio Check")]
-        public void RefreshManual()
-        {
-            CheckAspectRatio();
+            if (m_VerticalContent != null)
+                m_VerticalContent.SetActive(!isHorizontal);
         }
     }
 }

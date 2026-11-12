@@ -1,0 +1,27 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+csharp_new_line_before_open_brace = all
+csharp_prefer_braces = when_multiline:suggestion
+csharp_style_namespace_declarations = block_scoped
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false:suggestion
+
+dotnet_naming_rule.private_fields.symbols = private_fields
+dotnet_naming_rule.private_fields.style = m_prefix
+dotnet_naming_rule.private_fields.severity = suggestion
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private, protected
+dotnet_naming_style.m_prefix.required_prefix = m_
+dotnet_naming_style.m_prefix.capitalization = pascal_case
+
+[*.{json,asmdef}]
+indent_size = 4

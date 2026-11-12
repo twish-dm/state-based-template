@@ -1,14 +1,15 @@
-﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace StateEngine.Views
 {
     public interface IViewer
     {
         IView CurrentView { get; }
-        IView OverlayView { get; }
-        void Push(string name, bool popAll);
-        void Push(string name);
-        void PopAll();
-        void Pop();
+
+        Task Push(string viewName, bool clearHistory = true);
+
+        Task Pop();
+
+        Task PopAll();
     }
 }
